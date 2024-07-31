@@ -1,0 +1,30 @@
+// The function undenylist is implemented to remove an account from the denylist. It checks that the caller is the denylister.
+// To implement this function, we need:
+// Parameters:
+// denylister: &signer - The signer who is authorized to remove accounts from the denylist.
+// account: address - The account to be removed from the denylist.
+// Flow:
+// Call assert_not_paused() to ensure the stablecoin is not paused.
+// Retrieve the global Roles object using borrow_global<Roles>(usdk_address()).
+// Ensure the caller is the denylister by checking signer::address_of(denylister) == roles.denylister.
+// Retrieve the global mutable State object using borrow_global_mut<State>(usdk_address()).
+// Remove the account from the denylist using smart_table::remove(&mut state.denylist, account).
+// Unfreeze the account using primary_fungible_store::set_frozen_flag(freeze_ref, account, false).
+// Emit a Denylist event with the relevant details.
+```
+public entry fun undenylist(denylister: &signer, account: address) acquires Management, Roles, State {
+    assert_not_paused();
+    let roles = borrow_global<Roles>(usdk_address());
+    assert!(signer::address_of(denylister) == roles.denylister, EUNAUTHORIZED);
+    let state = borrow_global_mut<State>(usdk_address());
+    smart_table::remove(&mut state.denylist, account);
+
+    let freeze_ref = &borrow_global<Management>(usdk_address()).transfer_ref;
+    primary_fungible_store::set_frozen_flag(freeze_ref, account, false);
+
+    event::emit(Denylist {
+        denylister: signer::address_of(denylister),
+        account,
+    });
+}
+```

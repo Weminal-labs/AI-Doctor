@@ -1,0 +1,86 @@
+// The buy_key function is implemented to facilitate the purchase of keys by users. It handles the logic for buying shares from an issuer and updates the associated holdings, issuer, and user data structures accordingly.
+// To implement the buy_key function, we need:
+// Parameters:
+// sender: A reference to the signer's address who is buying the key.
+// issuer_addr: The address of the issuer from whom the key is being bought.
+// amount: The amount of shares being purchased.
+// Process:
+// Calculate the total cost, issuer fee, protocol fee, and key cost based on the issuer address and the amount of shares being purchased.
+// Ensure that the sender has enough balance to cover the total cost.
+// Verify that the issuer exists in the global storage.
+// Increment the total issued shares of the issuer.
+// Check if the sender already holds shares from the issuer. If so, increment the shares. If not, create a new holding object.
+// Transfer the calculated costs to the vault, protocol, and issuer addresses.
+// Emit an event to signal that a key has been purchased.
+```
+public entry fun buy_key(
+    sender: &signer,
+    issuer_addr: address,
+    amount: u64,
+) acquires Issuer, Holding, User {
+    let sender_addr = signer::address_of(sender);
+    let (key_cost, issuer_fee, protocol_fee, total_cost) = calculate_buy_key_cost(issuer_addr, amount);
+    assert!(coin::balance<aptos_coin::AptosCoin>(sender_addr) >= total_cost, E_INSUFFICIENT_BALANCE);
+
+    let issuer_obj_addr = get_issuer_obj_addr(issuer_addr);
+    assert!(exists<Issuer>(issuer_obj_addr), E_ISSUER_NOT_EXIST);
+
+    let issuer = borrow_global_mut<Issuer>(issuer_obj_addr);
+    issuer.total_issued_shares = issuer.total_issued_shares + amount;
+
+    let holding_obj_addr = get_holding_obj_addr(issuer_addr, sender_addr);
+    // Check if holding_obj_addr is already existed on global store 
+    if (exists<Holding>(holding_obj_addr)) {
+        // existing holder buys more shares
+        let holding = borrow_global_mut<Holding>(holding_obj_addr);
+        holding.shares = holding.shares + amount;
+    } else {
+        // new holder buys shares
+        let holding_obj_constructor_ref = &object::create_named_object(
+            sender,
+            construct_holding_object_seed(issuer_addr, sender_addr)
+        );
+        let holding_obj_signer = object::generate_signer(holding_obj_constructor_ref);
+        move_to(&holding_obj_signer, Holding {
+            issuer: issuer_addr,
+            holder: sender_addr,
+            shares: amount,
+        });
+
+        vector::push_back(&mut issuer.holder_holdings, get_holding_obj(issuer_addr, sender_addr));
+
+        let buyer_obj_addr = get_user_obj_addr(sender_addr);
+        if (exists<User>(buyer_obj_addr)) {
+            let buyer_obj = borrow_global_mut<User>(buyer_obj_addr);
+            vector::push_back(&mut buyer_obj.holdings, get_holding_obj(issuer_addr, sender_addr));
+        } else {
+            let buyer_obj_constructor_ref = &object::create_named_object(
+                sender,
+                construct_user_object_seed(sender_addr)
+            );
+            let buyer_obj_signer = object::generate_signer(buyer_obj_constructor_ref);
+            move_to(&buyer_obj_signer, User {
+                holdings: vector[get_holding_obj(issuer_addr, sender_addr)],
+            });
+        };
+    };
+
+    aptos_account::transfer(sender, get_vault_addr(), key_cost);
+    aptos_account::transfer(sender, @friend_tech_addr, protocol_fee);
+    aptos_account::transfer(sender, issuer_addr, issuer_fee);
+
+    event::emit(
+        BuyKeyEvent {
+            issuer_addr,
+            issuer_obj: get_issuer_obj(issuer_addr),
+            buyer_addr: sender_addr,
+            buyer_user_obj: get_user_obj(sender_addr),
+            amount,
+            key_cost,
+            issuer_fee,
+            protocol_fee,
+            total_cost,
+        }
+    );
+}
+```

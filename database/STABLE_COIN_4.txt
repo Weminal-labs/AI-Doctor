@@ -1,0 +1,44 @@
+// The function transfer_from is implemented to allow a spender to transfer tokens from the owner's account given their signed approval.
+// To implement this function, we need:
+// Arguments:
+// spender: A signer reference.
+// proof: A vector of bytes representing the signed approval proof.
+// from: The address of the token owner.
+// from_account_scheme: The account scheme of the token owner.
+// from_public_key: A vector of bytes representing the public key of the token owner.
+// to: The address of the recipient.
+// amount: The amount of tokens to transfer.
+// Flow:
+// Call assert_not_paused to ensure the contract is not paused.
+// Call assert_not_denylisted for both from and to addresses to ensure they are not denylisted.
+// Create an Approval struct with the owner, nonce, chain ID, spender, and amount.
+// Verify the signed message using verify_signed_message.
+// Borrow the transfer_ref from the Management struct using usdk_address.
+// Perform the token transfer using transfer_with_ref.
+```
+public fun transfer_from(
+    spender: &signer,
+    proof: vector<u8>,
+    from: address,
+    from_account_scheme: u8,
+    from_public_key: vector<u8>,
+    to: address,
+    amount: u64,
+) acquires Management, State {
+    assert_not_paused();
+    assert_not_denylisted(from);
+    assert_not_denylisted(to);
+
+    let expected_message = Approval {
+        owner: from,
+        nonce: account::get_sequence_number(from),
+        chain_id: chain_id::get(),
+        spender: signer::address_of(spender),
+        amount,
+    };
+    account::verify_signed_message(from, from_account_scheme, from_public_key, proof, expected_message);
+
+    let transfer_ref = &borrow_global<Management>(usdk_address()).transfer_ref;
+    primary_fungible_store::transfer_with_ref(transfer_ref, from, to, amount);
+}
+```

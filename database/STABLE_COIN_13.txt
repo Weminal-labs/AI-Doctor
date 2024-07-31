@@ -1,0 +1,18 @@
+// The function add_minter is implemented to add a new minter. It checks that the caller is the master minter and the account is not already a minter.
+// To implement this function, we need:
+// Parameters:
+// admin: &signer - The signer who is authorized to add new minters.
+// minter: address - The address of the new minter to be added.
+// Flow:
+// Retrieve the global mutable Roles object using borrow_global_mut<Roles>(usdk_address()).
+// Ensure the caller is the master minter by checking signer::address_of(admin) == roles.master_minter.
+// Ensure the account is not already a minter by checking !vector::contains(&roles.minters, &minter).
+// Add the new minter to the list of minters using vector::push_back(&mut roles.minters, minter).
+```
+public entry fun add_minter(admin: &signer, minter: address) acquires Roles {
+    let roles = borrow_global_mut<Roles>(usdk_address());
+    assert!(signer::address_of(admin) == roles.master_minter, EUNAUTHORIZED);
+    assert!(!vector::contains(&roles.minters, &minter), EALREADY_MINTER);
+    vector::push_back(&mut roles.minters, minter);
+}
+```

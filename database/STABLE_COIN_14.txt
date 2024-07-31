@@ -1,0 +1,19 @@
+
+// Functions implements to check some condition
+```
+fun assert_is_minter(minter: &signer) acquires Roles {
+    let roles = borrow_global<Roles>(usdk_address());
+    let minter = signer::address_of(minter);
+    assert!(minter == roles.master_minter || vector::contains(&roles.minters, &minter), EUNAUTHORIZED);
+}
+
+fun assert_not_paused() acquires State {
+    let state = borrow_global<State>(usdk_address());
+    assert!(!state.paused, EPAUSED);
+}
+
+fun assert_not_denylisted(account: address) acquires State {
+    let state = borrow_global<State>(usdk_address());
+    assert!(!smart_table::contains(&state.denylist, account), EBLACKLISTED);
+}
+```

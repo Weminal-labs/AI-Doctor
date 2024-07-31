@@ -1,0 +1,38 @@
+// Helper Functions
+// Function get_marketplace_signer_addr in implemented to get address of the marketplace signer
+// To ipmlement this function, we need:
+// Parameters:
+// Process:
+// Use create_object_address to get address from module_address and APP_OBJECT_SEED
+```
+fun get_marketplace_signer_addr(): address {
+    object::create_object_address(&@marketplace_addr, APP_OBJECT_SEED)
+}
+```
+
+// Function get_marketplace_signer is implemented to get address of the Marketplace signer
+// To ipmlement this function, we need:
+// Parameters:
+// marketplace_signer_addr: address to get address of the Marketplace signer
+// Process:
+// Use generate_signer_for_extending to get address of the Marketplace signer
+```
+fun get_marketplace_signer(marketplace_signer_addr: address): signer acquires MarketplaceSigner {
+    object::generate_signer_for_extending(&borrow_global<MarketplaceSigner>(marketplace_signer_addr).extend_ref)
+}
+```
+// Function borrow_listing is implemented to borrow Listing object resource in the object from the global storage. This also checks that the Listing resource exists within the provided object address. This is defined as a friend function so that our test module test_list_and_purchase can call this function.
+// To implement borrow_listing, we need:
+// Parameters:
+// object: The NFT object for which the Listing struct is being retrieved.
+// Process:
+// Retrieve Object Address: Obtain the address of the listing using object::object_address.
+// Check Existence: Verify that the Listing resource exists at the listing address using the exists function.
+// Borrow Listing: If the Listing resource exists, borrow it using borrow_global and return the reference.
+```
+inline fun borrow_listing(object: object::Object<Listing>): &Listing acquires Listing {
+    let obj_addr = object::object_address(&object);
+    assert!(exists<Listing>(obj_addr), error::not_found(ENO_LISTING));
+    borrow_global<Listing>(obj_addr)
+}
+```

@@ -1,0 +1,34 @@
+// The function burn_from is implemented to burn tokens from the specified account's store. It checks that the caller is a minter and the stablecoin is not paused.
+// To implement this function, we need:
+// Parameters:
+// minter: &signer - The signer who is burning the tokens.
+// store: Object<FungibleStore> - The storage object from which the tokens will be burned.
+// amount: u64 - The amount of tokens to be burned.
+// Flow:
+// Call assert_is_minter(minter) to ensure the caller is a minter.
+// Call assert_not_paused() to ensure the stablecoin is not paused.
+// Retrieve the global Management object using borrow_global<Management>(usdk_address)
+```
+public entry fun burn_from(
+    minter: &signer,
+    store: Object<FungibleStore>,
+    amount: u64,
+) acquires Management, Roles, State {
+    assert_is_minter(minter);
+    assert_not_paused();
+    let management = borrow_global<Management>(usdk_address());
+    let tokens = fungible_asset::withdraw_with_ref(
+        &management.transfer_ref,
+        store,
+        amount,
+    );
+    fungible_asset::burn(&management.burn_ref, tokens);
+
+    event::emit(Burn {
+        minter: signer::address_of(minter),
+        from: object::owner(store),
+        store,
+        amount,
+    });
+}
+```

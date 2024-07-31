@@ -1,0 +1,31 @@
+// The function mint is implemented to mint new tokens to the specified account. It checks that the caller is a minter, the stablecoin is not paused, and the account is not denylisted.
+// To implement this function, we need:
+// Parameters:
+// minter: &signer - The signer who is minting the tokens.
+// to: address - The address to which the new tokens will be minted.
+// amount: u64 - The amount of tokens to be minted.
+// Flow:
+// Call assert_is_minter(minter) to ensure the caller is a minter.
+// Call assert_not_paused() to ensure the stablecoin is not paused.
+// Call assert_not_denylisted(to) to ensure the account is not denylisted.
+// Retrieve the global Management object using borrow_global<Management>(usdk_address()).
+// Mint the tokens using fungible_asset::mint(&management.mint_ref, amount).
+// Deposit the minted tokens using deposit(primary_fungible_store::ensure_primary_store_exists(to, metadata()), tokens, &management.transfer_ref).
+// Emit a Mint event with the relevant details.
+```
+public entry fun mint(minter: &signer, to: address, amount: u64) acquires Management, Roles, State {
+    assert_is_minter(minter);
+    assert_not_paused();
+    assert_not_denylisted(to);
+
+    let management = borrow_global<Management>(usdk_address());
+    let tokens = fungible_asset::mint(&management.mint_ref, amount);
+    deposit(primary_fungible_store::ensure_primary_store_exists(to, metadata()), tokens, &management.transfer_ref);
+
+    event::emit(Mint {
+        minter: signer::address_of(minter),
+        to,
+        amount,
+    });
+}
+```

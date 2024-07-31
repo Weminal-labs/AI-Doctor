@@ -1,0 +1,100 @@
+// Write Entry Function
+
+// NFT holders can call this function to list their NFT for sale at a fixed price.
+
+// In this function, we create a new object owned by the seller and move the Listing and FixedPriceListing resources to the object. We also transfer the token to the object signer, which works as an escrow account.
+
+// A new object is created from the seller's account, calling the create_object function from the object module. We will store Listing and FixedPriceListing resources in this object.
+/// List an time for sale at a fixed price.
+
+
+// The list_with_fixed_price function is implemented to create a fixed-price listing for an object (NFT) in the marketplace. This function allows a seller to list an object at a specified price, making it available for buyers to purchase.
+// To implement list_with_fixed_price, we need:
+//Parameters:
+// seller: A reference to the seller signer. This signer represents the owner of the object who is listing it for sale.
+// obj: The object (NFT) that is being listed for sale.
+// price: The fixed price at which the object is being listed.
+// Process:
+// Create Object: A new object is created with a reference to the seller's address using object::create_object.
+// Generate Transfer Reference: A transfer reference is generated for the created object using object::generate_transfer_ref.
+// Disable Ungated Transfer: The function disables ungated transfer of the object using object::disable_ungated_transfer to ensure only the marketplace can manage the transfer.
+// Generate Signer: A signer specific to the listing is generated using object::generate_signer.
+// Create Listing: A Listing struct is created with the object, seller's address, a delete reference, and an extend reference.
+// Create Fixed Price Listing: A FixedPriceListing struct is created with the specified price.
+// Move to Storage: Both the Listing and FixedPriceListing structs are moved to the appropriate storage locations managed by the listing signer.
+// Transfer Object: The NFT is transferred from the seller to the listing signer's address, effectively placing it in escrow.
+```
+public entry fun list_with_fixed_price<CoinType>(
+    seller: &signer,
+    object: Object<ObjectCore>,
+    price: u64,
+) {
+    let constructor_ref = object::create_object(signer::address_of(seller));
+    let transfer_ref = object::generate_transfer_ref(&constructor_ref);
+    // We will not allow ungated transfer of the object by calling the disable_ungated_transfer function from the object module.
+    object::disable_ungated_transfer(&transfer_ref);
+    // Create a new Listing and FixedPriceListing resources and move them to the object signer.
+    let listing_signer = object::generate_signer(&constructor_ref);
+    let listing = Listing {
+        object,
+        seller: signer::address_of(seller),
+        delete_ref: object::generate_delete_ref(&constructor_ref),
+        extend_ref: object::generate_extend_ref(&constructor_ref),
+    };
+    let fixed_price_listing = FixedPriceListing<CoinType> {
+        price,
+    };
+    move_to(&listing_signer, listing);
+    move_to(&listing_signer, fixed_price_listing);
+    // transfer the token to the object signer, which work as a escrow account. 
+    object::transfer(seller, object, signer::address_of(&listing_signer));
+}
+```
+
+// The purchase function is implemented to handle the purchase of an NFT listed for sale at a fixed price. It ensures that the NFT is transferred to the buyer, the payment is processed, and the listing is cleaned up.
+// To implement purchase, we need:
+// Parameters:
+// purchaser: A reference to the signer who is purchasing the NFT.
+// object: The NFT object that is being purchased.
+// Process:
+// Retrieve Listing Address: Obtain the address of the listing using object::object_address.
+// Check Existence: Verify that both the Listing and FixedPriceListing resources exist at the listing address using the exists function.
+// Extract Price: Move the FixedPriceListing resource from global storage and extract the price of the NFT.
+// Withdraw Payment: Withdraw the required amount of coins from the purchaser's account using the coin::withdraw function.
+// Retrieve Listing: Move the Listing resource from global storage and extract the object, seller's address, delete reference, and extend reference.
+// Transfer NFT: Transfer the NFT to the purchaser using the object::transfer function with a signer generated from the extend reference.
+// Delete Listing: Clean up the listing by deleting the object containing the Listing and FixedPriceListing resources using the object::delete function.
+// Deposit Payment: Deposit the coins to the seller's account using the aptos_account::deposit_coins function.
+```
+public entry fun purchase<CoinType>(
+    purchaser: &signer,
+    object: Object<ObjectCore>,
+    ) acquires FixedPriceListing, Listing {
+    let listing_addr = object::object_address(&object);
+    // Check if the Listing and FixedPriceListing resources exist for the given object address, using exists native function.
+    assert!(exists<Listing>(listing_addr), error::not_found(ENO_LISTING));
+    assert!(exists<FixedPriceListing<CoinType>>(listing_addr), error::not_found(ENO_LISTING));
+    
+    // move the FixedPriceListing resource from the global storage (under object address) and extract the price of the NFT. Then, we withdraw the payment from the buyer's account using the coin::withdraw function.
+        let FixedPriceListing {
+            price,
+        } = move_from<FixedPriceListing<CoinType>>(listing_addr);
+    
+        // The listing has concluded, transfer the asset and delete the listing. Returns the seller
+        // for depositing any profit.
+        let coins = coin::withdraw<CoinType>(purchaser, price);
+        // move the Listing resource from the global storage (under object address) and extract the object, seller, delete_ref, and extend_ref fields.
+        let Listing {
+            object,
+            seller, // get seller from Listing object
+            delete_ref,
+            extend_ref,
+        } = move_from<Listing>(listing_addr);
+        // Transfer the NFT to the buyer and delete the object which contains Listing and FixedPriceListing resources. We use the extend_ref to generate a signer for the object and transfer the escrowed NFT to the buyer.
+        let obj_signer = object::generate_signer_for_extending(&extend_ref);
+        object::transfer(&obj_signer, object, signer::address_of(purchaser));
+        object::delete(delete_ref); // Clean-up the listing object.
+    
+        aptos_account::deposit_coins(seller, coins);
+    }
+```

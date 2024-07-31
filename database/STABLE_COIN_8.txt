@@ -1,0 +1,13 @@
+// The function burn is implemented to burn tokens from the specified account. It checks that the caller is a minter and the stablecoin is not paused.
+// To implement this function, we need:
+// Parameters:
+// minter: &signer - The signer who is burning the tokens.
+// from: address - The address from which the tokens will be burned.
+// amount: u64 - The amount of tokens to be burned.
+// Flow:
+// Call burn_from(minter, primary_fungible_store::ensure_primary_store_exists(from, metadata()), amount) to perform the burn operation.
+```
+public entry fun burn(minter: &signer, from: address, amount: u64) acquires Management, Roles, State {
+    burn_from(minter, primary_fungible_store::ensure_primary_store_exists(from, metadata()), amount);
+}
+```

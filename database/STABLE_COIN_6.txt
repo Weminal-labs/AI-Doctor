@@ -1,0 +1,21 @@
+// The function withdraw is implemented to ensure that the account is not denylisted and the stablecoin is not paused before allowing a withdrawal.
+// To implement this function, we need:
+// Parameters:
+// store: Object<T> - The storage object from where the withdrawal will be made.
+// amount: u64 - The amount to be withdrawn.
+// transfer_ref: &TransferRef - A reference for the transfer operation.
+// Flow:
+// Call assert_not_paused() to ensure the stablecoin is not paused.
+// Call assert_not_denylisted(object::owner(store)) to ensure the account is not denylisted.
+// Perform the withdrawal operation using fungible_asset::withdraw_with_ref(transfer_ref, store, amount)
+```
+public fun withdraw<T: key>(
+    store: Object<T>,
+    amount: u64,
+    transfer_ref: &TransferRef,
+): FungibleAsset acquires State {
+    assert_not_paused();
+    assert_not_denylisted(object::owner(store));
+    fungible_asset::withdraw_with_ref(transfer_ref, store, amount)
+}
+```

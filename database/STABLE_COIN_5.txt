@@ -1,0 +1,22 @@
+// The function deposit is implemented to ensure that the account is not denylisted and the stablecoin is not paused before allowing a deposit.
+// To implement this function, we need:
+// Parameters:
+// store: Object<T> - The storage object where the deposit will be made.
+// fa: FungibleAsset - The fungible asset to be deposited.
+// transfer_ref: &TransferRef - A reference for the transfer operation.
+// Flow:
+// Call assert_not_paused() to ensure the stablecoin is not paused.
+// Call assert_not_denylisted(object::owner(store)) to ensure the account is not denylisted.
+// Perform the deposit operation using fungible_asset::deposit_with_ref(transfer_ref, store, fa).
+/// Deposit function override to ensure that the account is not denylisted and the stablecoin is not paused.
+```
+public fun deposit<T: key>(
+    store: Object<T>,
+    fa: FungibleAsset,
+    transfer_ref: &TransferRef,
+) acquires State {
+    assert_not_paused();
+    assert_not_denylisted(object::owner(store));
+    fungible_asset::deposit_with_ref(transfer_ref, store, fa);
+}
+```

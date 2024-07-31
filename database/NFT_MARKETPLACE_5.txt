@@ -1,0 +1,60 @@
+
+// The price function is implemented to retrieve the fixed price of an NFT that has been listed in the marketplace. This function checks if the FixedPriceListing resource exists for the given object address and returns the price if it exists.
+// To implement price, we need:
+// Parameters: 
+// object: The NFT object for which the price is being retrieved.
+// Process:
+// Retrieve Listing Address: Obtain the address of the listing using object::object_address.
+// Check Existence: Verify that the FixedPriceListing resource exists at the listing address using the exists function.
+// Return Price: If the FixedPriceListing resource exists, borrow it using borrow_global and return the price using option::some.
+// Handle Non-Existence: If the FixedPriceListing resource does not exist, assert with an error code indicating that the listing was not found and return option::none.
+```
+#[view]
+public fun price<CoinType>(
+    object: Object<Listing>,
+): Option<u64> acquires FixedPriceListing {
+    let listing_addr = object::object_address(&object);
+    if (exists<FixedPriceListing<CoinType>>(listing_addr)) {
+        let fixed_price = borrow_global<FixedPriceListing<CoinType>>(listing_addr);
+        option::some(fixed_price.price)
+    } else {
+        // This should just be an abort but the compiler errors.
+        assert!(false, error::not_found(ENO_LISTING));
+        option::none()
+    }
+}
+```
+// The listed_object is implemented to return listed token object from the object that the Object<Listing> object reference points to.
+// To implement this function, we need:
+// Parameters: 
+// object: The NFT object for which the price is being retrieved. 
+// Process:
+// Borrow Listing object resource in the object from the global storage by borrow_listing function. This also checks that the Listing resource exists within the provided object address.
+// Return Listing object
+```
+#[view]
+public fun listed_object(object: Object<Listing>): Object<ObjectCore> acquires Listing {
+    let listing = borrow_listing(object);
+    listing.object
+}
+```
+
+// function get_seller_listings is implemented to retrieve a list of addresses of all sellers who have listed items in the marketplace. It checks if the Sellers resource exists and returns the addresses of the sellers.
+// To implement get_sellers, we need:
+// Parameters: 
+// seller: A reference to the deployer signer. This signer represents the owner of the contract who is deploy this module.
+// Process:
+// Check Existence: Verify if the Sellers resource exists at the marketplace signer's address using the exists function.
+// Retrieve Sellers: If the Sellers resource exists, borrow it using borrow_global and convert its smart_vector of addresses to a regular vector using smart_vector::to_vector.
+// Handle Non-Existence: If the Sellers resource does not exist, return an empty vector.
+```
+#[view]
+    public fun get_seller_listings(seller: address): vector<address> acquires SellerListings {
+        if (exists<SellerListings>(seller)) {
+            smart_vector::to_vector(&borrow_global<SellerListings>(seller).listings)
+        } else {
+            vector[]
+        }
+    }
+```
+

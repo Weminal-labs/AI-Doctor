@@ -1,0 +1,31 @@
+// The function denylist is implemented to add an account to the denylist. It checks that the caller is the denylister.
+// To implement this function, we need:
+// Parameters:
+// denylister: &signer - The signer who is authorized to add accounts to the denylist.
+// account: address - The account to be added to the denylist.
+// Flow:
+// Call assert_not_paused() to ensure the stablecoin is not paused.
+// Retrieve the global Roles object using borrow_global<Roles>(usdk_address()).
+// Ensure the caller is the denylister by checking signer::address_of(denylister) == roles.denylister.
+// Retrieve the global mutable State object using borrow_global_mut<State>(usdk_address()).
+// Add the account to the denylist using smart_table::upsert(&mut state.denylist, account, true).
+// Freeze the account using primary_fungible_store::set_frozen_flag(freeze_ref, account, true).
+// Emit a Denylist event with the relevant details.
+```
+public entry fun denylist(denylister: &signer, account: address) acquires Management, Roles, State {
+    assert_not_paused();
+    let roles = borrow_global<Roles>(usdk_address());
+    assert!(signer::address_of(denylister) == roles.denylister, EUNAUTHORIZED);
+    let state = borrow_global_mut<State>(usdk_address());
+    smart_table::upsert(&mut state.denylist, account, true);
+
+    let freeze_ref = &borrow_global<Management>(usdk_address()).transfer_ref;
+    primary_fungible_store::set_frozen_flag(freeze_ref, account, true);
+
+    event::emit(Denylist {
+        denylister: signer::address_of(denylister),
+        account,
+    });
+}
+```
+

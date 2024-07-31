@@ -1,0 +1,24 @@
+// The list_with_fixed_price function is implemented to list an object for sale at a fixed price. It sets up the necessary resources and transfers the object to an escrow account.
+// To implement this function, we need:
+// Parameters:
+// seller: A reference to the signer's address who is listing the object.
+// object: The object being listed for sale.
+// price: The fixed price at which the object is being listed.
+// Process:
+// Create Object Constructor Reference
+// Generate Transfer Reference: Generate a transfer reference for the newly created object.
+// Disable Ungated Transfer: Disable ungated transfer for the object to prevent unauthorized transfers.
+
+```
+fun init_module(sender: &signer) {
+    let vault_constructor_ref = &object::create_named_object(sender, VAULT_SEED);
+    let vault_signer = &object::generate_signer(vault_constructor_ref);
+
+    move_to(vault_signer, Vault {
+        extend_ref: object::generate_extend_ref(vault_constructor_ref),
+    });
+    move_to(sender, IssuerRegistry {
+        issuers: vector::empty()
+    });
+}
+```

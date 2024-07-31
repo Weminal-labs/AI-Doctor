@@ -1,0 +1,141 @@
+// Create view functions
+// function get_vault_addr is implemented to return the address of the vault
+```
+#[view]
+public fun get_vault_addr(): address {
+    object::create_object_address(&@friend_tech_addr, VAULT_SEED)
+}```
+// function get_vault_obj is implement to return the Vault object by calling get_vault_addr to get the address and use object::address_to_object to get the object
+```
+#[view]
+public fun get_vault_obj(): object::Object<Vault> {
+    object::address_to_object(get_vault_addr())
+}```
+// function get_issuer_registry is implement to return the issuer object by borrow from global storage 
+```
+#[view]
+public fun get_issuer_registry(): vector<object::Object<Issuer>> acquires IssuerRegistry {
+    let registry = borrow_global<IssuerRegistry>(@friend_tech_addr);
+    registry.issuers
+}
+```
+// function get_issuer_obj_addr is implement to return the address of of issuer object
+```
+#[view]
+public fun get_issuer_obj_addr(issuer_addr: address): address {
+    let seed = construct_issuer_object_seed(issuer_addr);
+    object::create_object_address(&issuer_addr, seed)
+}```
+// function get_user_obj_addr is implement to return the object address of user
+```
+#[view]
+public fun get_user_obj_addr(user_addr: address): address {
+    let seed = construct_user_object_seed(user_addr);
+    object::create_object_address(&user_addr, seed)
+}```
+// function get_holding_obj_addr isn implemented to return the address of holding object by getting seed by construct_holding_object_seed function 
+```
+#[view]
+public fun get_holding_obj_addr(issuer_addr: address, holder_addr: address): address {
+    let seed = construct_holding_object_seed(issuer_addr, holder_addr);
+    object::create_object_address(&holder_addr, seed)
+}```
+//function get_issuer_obj is imlemented to return the issuer object by ussuer_address
+```
+#[view]
+public fun get_issuer_obj(issuer_addr: address): object::Object<Issuer> {
+    object::address_to_object(get_issuer_obj_addr(issuer_addr))
+}```
+// function get_user_obj is imlemented to return the user object by user_addr
+```
+#[view]
+public fun get_user_obj(user_addr: address): object::Object<User> {
+    object::address_to_object(get_user_obj_addr(user_addr))
+}```
+// function get_holding_object is imlemented to return the holding object by issuer_addr and holder_addr
+```
+#[view]
+public fun get_holding_obj(issuer_addr: address, holder_addr: address): object::Object<Holding> {
+    object::address_to_object(get_holding_obj_addr(issuer_addr, holder_addr))
+}```
+// function get_isser is imlemented to destruct Issuer object and return the issuer address, issure name, total_issued_shares and holder_holdings
+```
+#[view]
+public fun get_issuer(
+    issuer_obj: object::Object<Issuer>
+): (address, string::String, u64, vector<object::Object<Holding>>) acquires Issuer {
+    let issuer = borrow_global<Issuer>(object::object_address(&issuer_obj));
+    (issuer.addr, issuer.username, issuer.total_issued_shares, issuer.holder_holdings)
+}```
+// function get_user_holdings is implement to return a vector of holding objects
+```
+#[view]
+public fun get_user_holdings(user_obj: object::Object<User>): vector<object::Object<Holding>> acquires User {
+    let user = borrow_global<User>(object::object_address(&user_obj));
+    user.holdings
+}```
+// function get_holding is implement to return the holding issuer, holder and shares
+```
+#[view]
+public fun get_holding(holding_obj: object::Object<Holding>): (address, address, u64) acquires Holding {
+    let holding = borrow_global<Holding>(object::object_address(&holding_obj));
+    (holding.issuer, holding.holder, holding.shares)
+}```
+// The calculate_buy_key_cost function is implemented to compute the cost of purchasing keys for a given issuer. It takes into account the key cost, issuer fee, and protocol fee, and returns the total cost involved in the transaction.
+// To implement this function, we need:
+
+// Parameters:
+
+// issuer_addr: The address of the issuer.
+// amount: The number of keys being purchased.
+// Implementation flow:
+
+// Retrieve the address of the issuer object using get_issuer_obj_addr.
+// Borrow the global Issuer object associated with the issuer's address.
+// Get the current total number of issued shares from the Issuer object.
+// Calculate the key cost using the calculate_key_cost function.
+// Calculate the issuer fee and protocol fee as 5% of the key cost each.
+// Compute the total cost by adding the key cost, issuer fee, and protocol fee.
+// Return the calculated key cost, issuer fee, protocol fee, and total cost.
+```
+#[view]
+public fun calculate_buy_key_cost(issuer_addr: address, amount: u64): (u64, u64, u64, u64) acquires Issuer {
+    let issuer_obj_addr = get_issuer_obj_addr(issuer_addr);
+    let issuer = borrow_global<Issuer>(issuer_obj_addr);
+    let old_supply = issuer.total_issued_shares;
+
+    let key_cost = calculate_key_cost(old_supply, amount);
+    let issuer_fee = key_cost * 5 / 100;
+    let protocol_fee = key_cost * 5 / 100;
+    let total_cost = key_cost + issuer_fee + protocol_fee;
+
+    (key_cost, issuer_fee, protocol_fee, total_cost)
+}
+```
+// The calculate_sell_key_cost function is implemented to compute the cost of selling keys for a given issuer. It calculates the key cost, issuer fee, and protocol fee, and returns the total cost involved in the transaction.
+// To implement this function, we need:
+// Parameters:
+// issuer_addr: The address of the issuer.
+// amount: The number of keys being sold.
+// Implementation flow:
+// Retrieve the address of the issuer object using get_issuer_obj_addr.
+// Borrow the global Issuer object associated with the issuer's address.
+// Get the current total number of issued shares from the Issuer object.
+// Calculate the key cost using the calculate_key_cost function with the adjusted supply after selling the keys.
+// Calculate the issuer fee and protocol fee as 5% of the key cost each.
+// Compute the total cost by adding the issuer fee and protocol fee.
+// Return the calculated key cost, issuer fee, protocol fee, and total cost.
+```
+#[view]
+public fun calculate_sell_key_cost(issuer_addr: address, amount: u64): (u64, u64, u64, u64) acquires Issuer {
+    let issuer_obj_addr = get_issuer_obj_addr(issuer_addr);
+    let issuer = borrow_global<Issuer>(issuer_obj_addr);
+    let old_supply = issuer.total_issued_shares;
+
+    let key_cost = calculate_key_cost(old_supply - amount, amount);
+    let issuer_fee = key_cost * 5 / 100;
+    let protocol_fee = key_cost * 5 / 100;
+    let total_cost = issuer_fee + protocol_fee;
+
+    (key_cost, issuer_fee, protocol_fee, total_cost)
+}```

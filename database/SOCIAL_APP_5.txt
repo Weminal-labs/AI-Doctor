@@ -1,0 +1,79 @@
+// The sell_key function is implemented to allow users to sell their keys (shares). It handles the logic for transferring shares back to the issuer and updating the related holdings, issuer, and user data structures accordingly.
+// To implement this function, we need:
+
+// Parameters:
+// sender: A reference to the signer's address who is selling the key.
+// issuer_addr: The address of the issuer whose key is being sold.
+// amount: The amount of shares being sold.
+// Process:
+// Calculate the total cost, issuer fee, protocol fee, and key cost based on the issuer address and the amount of shares being sold.
+// Ensure that the sender has enough balance to cover the total cost.
+// Verify that the issuer exists in the global storage.
+// Ensure the sender holds shares of the issuer.
+// Decrement the total issued shares of the issuer.
+// Check if the sender has enough shares to sell. Ensure the issuer cannot sell the last share.
+// Update the holding by decrementing the shares.
+// If the holding shares become zero, remove the holding from the issuer's and user's holdings.
+// Transfer the calculated costs to the vault, protocol, and issuer addresses.
+// Emit an event to signal that a key has been sold.
+```
+public entry fun sell_key(
+    sender: &signer,
+    issuer_addr: address,
+    amount: u64,
+) acquires Issuer, Holding, User, Vault {
+    let sender_addr = signer::address_of(sender);
+    let (key_cost, issuer_fee, protocol_fee, total_cost) = calculate_sell_key_cost(issuer_addr, amount);
+    assert!(coin::balance<aptos_coin::AptosCoin>(sender_addr) >= total_cost, E_INSUFFICIENT_BALANCE);
+
+    let issuer_obj_addr = get_issuer_obj_addr(issuer_addr);
+    assert!(exists<Issuer>(issuer_obj_addr), E_ISSUER_NOT_EXIST);
+
+    let holding_obj_addr = get_holding_obj_addr(issuer_addr, sender_addr);
+    assert!(exists<Holding>(holding_obj_addr), E_HOLDING_NOT_EXIST);
+
+    let user_obj_addr = get_user_obj_addr(sender_addr);
+    assert!(exists<User>(user_obj_addr), E_USER_NOT_EXIST);
+
+    let issuer = borrow_global_mut<Issuer>(issuer_obj_addr);
+    issuer.total_issued_shares = issuer.total_issued_shares - amount;
+
+    let seller = borrow_global_mut<User>(user_obj_addr);
+
+    let holding = borrow_global_mut<Holding>(holding_obj_addr);
+    assert!(holding.shares >= amount, E_NOT_ENOUGH_SHARES_TO_SELL);
+    assert!(sender_addr != issuer_addr || holding.shares > amount, E_ISSUER_CANNOT_SELL_LAST_SHARE);
+
+    holding.shares = holding.shares - amount;
+
+    let holding_obj = get_holding_obj(issuer_addr, sender_addr);
+
+    if (holding.shares == 0) {
+        let (found, idx) = vector::index_of(&mut issuer.holder_holdings, &holding_obj);
+        assert!(found, E_HOLDER_NOT_EXIST);
+        vector::remove(&mut issuer.holder_holdings, idx);
+
+        let (found, idx) = vector::index_of(&mut seller.holdings, &holding_obj);
+        assert!(found, E_HOLDING_NOT_EXIST);
+        vector::remove(&mut seller.holdings, idx);
+    };
+
+    aptos_account::transfer(&get_vault_signer(), sender_addr, key_cost);
+    aptos_account::transfer(sender, @friend_tech_addr, protocol_fee);
+    aptos_account::transfer(sender, issuer_addr, issuer_fee);
+
+    event::emit(
+        SellKeyEvent {
+            issuer_addr,
+            issuer_obj: get_issuer_obj(issuer_addr),
+            seller_addr: sender_addr,
+            seller_user_obj: get_user_obj(sender_addr),
+            amount,
+            key_cost,
+            issuer_fee,
+            protocol_fee,
+            total_cost,
+        }
+    );
+}
+```

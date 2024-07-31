@@ -1,0 +1,36 @@
+// In Move, we define object resources by marking structs with the key ability and annotating them as resource_group_member. This enables us to create distinct object accounts for each listing, encapsulating all relevant listing information within.
+// We'll design our marketplace around two main structs: Listing and FixedPriceListing. This s eparation allows for future extensibility, such as supporting dynamic pricing models like auctions.
+// Each listing creates its own object account, with Listing holding the token object and seller information, and FixedPriceListing specifying the price in a chosen CoinType (CoinType is specified as a generic type parameter).
+// Resource Listing
+// object: The token object to be listed. Here, we support token v2; this is a object reference (or a pointer) to the token object.
+// seller: Seller account address.
+// delete_ref: We need this capability to clean-up the object after purchase.
+// extend_ref: We will escrow the token after listing (Listing object signer will hold the token), so we need ExtendRef to restore the object signer and call object::transfer when buyer wants to purchase.
+//This struct represents a signer specific to the marketplace.
+```
+#[resource_group_member(group = aptos_framework::object::ObjectGroup)]
+struct Listing has key {
+    /// The item owned by this listing, transferred to the new owner at the end.
+	object: Object<ObjectCore>,
+    /// The seller of the object.
+	seller: address,
+    /// Used to clean-up at the end.
+	delete_ref: DeleteRef,
+    /// Used to restore the object signer for transferring the escrowed object to the buyer.
+	extend_ref: ExtendRef,
+}
+```
+// This struct represents a listing in the marketplace.
+```
+#[resource_group_member(group = aptos_framework::object::ObjectGroup)]
+struct Listing has key {
+    /// The item owned by this listing, transferred to the new owner at the end.
+	object: Object<ObjectCore>,
+    /// The seller of the object.
+	seller: address,
+    /// Used to clean-up at the end.
+	delete_ref: DeleteRef,
+    /// Used to restore the object signer for transferring the escrowed object to the buyer.
+	extend_ref: ExtendRef,
+}
+```

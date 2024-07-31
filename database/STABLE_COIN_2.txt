@@ -1,0 +1,26 @@
+// View function
+// The function usdk_address is implemented to generate and return the address of the stablecoin object.
+// To implement this function, we need:
+// Arguments: None.
+// Flow:
+// Call the create_object_address function with the stablecoin module and ASSET_SYMBOL.
+// Return the generated address.
+```
+#[view]
+public fun usdk_address(): address {
+    object::create_object_address(&@stablecoin, ASSET_SYMBOL)
+}
+```
+// The function metadata is implemented to retrieve the metadata object for the stablecoin.
+// To implement this function, we need:
+// Arguments: None.
+// Flow:
+// Call the usdk_address function to get the stablecoin address.
+// Convert the address to an object using address_to_object.
+// Return the metadata object.
+```
+#[view]
+    public fun metadata(): Object<Metadata> {
+        object::address_to_object(usdk_address())
+    }
+```

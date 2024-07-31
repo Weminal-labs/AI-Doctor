@@ -1,0 +1,83 @@
+// Helper functions
+// The get_vault_signer function is implemented to generate a signer for the vault.
+```
+fun get_vault_signer(): signer acquires Vault {
+    let vault = borrow_global<Vault>(get_vault_addr());
+    object::generate_signer_for_extending(&vault.extend_ref)
+}
+```
+// The construct_issuer_object_seed function is implemented to generate a unique seed for an issuer object based on the issuer's address.
+// Parameters:
+// issuer_addr: The address of the issuer.
+// Implementation flow:
+// Format a string using the address of the friend_tech account and the issuer address.
+// Convert the formatted string to bytes.
+// Return the resulting byte vector.
+```
+fun construct_issuer_object_seed(issuer_addr: address): vector<u8> {
+    bcs::to_bytes(&string_utils::format2(&b"{}_issuer_{}", @friend_tech_addr, issuer_addr))
+}
+```
+// The construct_user_object_seed function is implemented to generate a unique seed for a user object based on the user's address.
+// Parameters:
+// user_addr: The address of the user.
+// Implementation flow:
+// Format a string using the address of the friend_tech account and the user address.
+// Convert the formatted string to bytes.
+// Return the resulting byte vector.
+```
+fun construct_user_object_seed(user_addr: address): vector<u8> {
+    bcs::to_bytes(&string_utils::format2(&b"{}_user_{}", @friend_tech_addr, user_addr))
+}
+```
+// The construct_holding_object_seed function is implemented to generate a unique seed for a holding object based on the issuer's and holder's addresses.
+// Parameters:
+// issuer_addr: The address of the issuer.
+// holder_addr: The address of the holder.
+// Implementation flow:
+// Format a string using the address of the friend_tech account, the issuer address, and the holder address.
+// Convert the formatted string to bytes.
+// Return the resulting byte vector.
+```
+fun construct_holding_object_seed(issuer_addr: address, holder_addr: address): vector<u8> {
+    bcs::to_bytes(
+        &string_utils::format3(
+            &b"{}_key_issued_by_{}_hold_by_{}",
+            @friend_tech_addr,
+            issuer_addr,
+            holder_addr,
+        )
+    )
+}
+```
+// The get_oct_per_aptos function is implemented to get the number of octets per Aptos coin.
+// Parameters: None.
+// Implementation flow:
+// Calculate 10 raised to the power of the number of decimals in the Aptos coin.
+// Return the result.
+```
+fun get_oct_per_aptos(): u64 {
+    math64::pow(10, (coin::decimals<aptos_coin::AptosCoin>() as u64))
+}
+```
+// The calculate_key_cost function is implemented to calculate the cost of a given number of keys based on the current supply.
+// Parameters:
+// supply: The current total supply of keys.
+// amount: The number of keys being calculated for.
+```
+fun calculate_key_cost(supply: u64, amount: u64): u64 {
+    let temp1 = supply - 1;
+    let temp2 = 2 * temp1 + 1;
+    let sum1 = temp1 * supply * temp2 / 6;
+
+    let temp3 = temp1 + amount;
+    let temp4 = supply + amount;
+    let temp5 = 2 * temp3 + 1;
+    let sum2 = temp3 * temp4 * temp5 / 6;
+
+    let summation = sum2 - sum1;
+
+    let key_cost = summation * get_oct_per_aptos() / 16000;
+    key_cost
+}
+```

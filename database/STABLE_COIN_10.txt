@@ -1,0 +1,24 @@
+// The function set_pause is implemented to pause or unpause the stablecoin. It checks that the caller is the pauser.
+// To implement this function, we need:
+// Parameters:
+// pauser: &signer - The signer who is authorized to pause or unpause the stablecoin.
+// paused: bool - A boolean indicating whether to pause (true) or unpause (false) the stablecoin.
+// Flow:
+// Retrieve the global Roles object using borrow_global<Roles>(usdk_address()).
+// Ensure the caller is the pauser by checking signer::address_of(pauser) == roles.pauser.
+// Retrieve the global mutable State object using borrow_global_mut<State>(usdk_address()).
+// Set the paused state to the provided paused value.
+// Emit a Pause event with the relevant details.
+```
+public entry fun set_pause(pauser: &signer, paused: bool) acquires Roles, State {
+    let roles = borrow_global<Roles>(usdk_address());
+    assert!(signer::address_of(pauser) == roles.pauser, EUNAUTHORIZED);
+    let state = borrow_global_mut<State>(usdk_address());
+    state.paused = paused;
+
+    event::emit(Pause {
+        pauser: signer::address_of(pauser),
+        paused,
+    });
+}
+```

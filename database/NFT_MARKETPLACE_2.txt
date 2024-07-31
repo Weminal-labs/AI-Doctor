@@ -1,0 +1,20 @@
+//The init_module function is implemented to initialize the marketplace module. This function sets up the necessary initial state and resources required for the marketplace to operate.
+// To ipmlement init_module, we need:
+// Parameters:
+// A reference to the deployer signer. This signer represents the owner of the contract who is deploy this module.
+// Process
+// Create a named object using the deployer signer and a singleton vector containing the seed.
+// Generate an extend reference from the constructor reference.
+// Generate a signer from the constructor reference.
+// Move the MarketplaceSigner resource to the marketplace_signer address.
+fun init_module(deployer: &signer) {
+    let constructor_ref = object::create_named_object(
+        deployer,
+        APP_OBJECT_SEED,
+    );
+    let extend_ref = object::generate_extend_ref(&constructor_ref);
+    let marketplace_signer = &object::generate_signer(&constructor_ref);
+    move_to(marketplace_signer, MarketplaceSigner {
+        extend_ref,
+    });
+}

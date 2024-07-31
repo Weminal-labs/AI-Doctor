@@ -1,0 +1,69 @@
+// The function init_module is implemented to initialize the stablecoin module.
+// To implement this function, we need:
+// Arguments:
+// usdk_signer: A signer reference.
+// Flow:
+// Create a named object for the stablecoin using create_named_object.
+// Configure the primary fungible asset store with the asset's name, symbol, decimals, icon, and project URL using create_primary_store_enabled_fungible_asset.
+// Generate a signer for the metadata object.
+// Initialize and move the Roles struct to the metadata object.
+// Initialize and move the Management struct with references for minting, burning, extending, and transferring to the metadata object.
+// Initialize and move the State struct with the paused state and denylist to the metadata object.
+// Create custom deposit and withdraw function information using new_function_info.
+// Register the custom deposit and withdraw functions using register_dispatch_functions.
+```
+fun init_module(usdk_signer: &signer) {
+    let constructor_ref = &object::create_named_object(usdk_signer, ASSET_SYMBOL);
+    primary_fungible_store::create_primary_store_enabled_fungible_asset(
+        constructor_ref,
+        option::none(),
+        utf8(ASSET_SYMBOL), /* name */
+        utf8(ASSET_SYMBOL), /* symbol */
+        8, /* decimals */
+        utf8(b"http://example.com/favicon.ico"), /* icon */
+        utf8(b"http://example.com"), /* project */
+    );
+
+    // All resources created will be kept in the asset metadata object.
+    let metadata_object_signer = &object::generate_signer(constructor_ref);
+    move_to(metadata_object_signer, Roles {
+        master_minter: @master_minter,
+        minters: vector[@minter],
+        pauser: @pauser,
+        denylister: @denylister,
+    });
+
+    // Create mint/burn/transfer refs to allow creator to manage the stablecoin.
+    move_to(metadata_object_signer, Management {
+        extend_ref: object::generate_extend_ref(constructor_ref),
+        mint_ref: fungible_asset::generate_mint_ref(constructor_ref),
+        burn_ref: fungible_asset::generate_burn_ref(constructor_ref),
+        transfer_ref: fungible_asset::generate_transfer_ref(constructor_ref),
+    });
+
+    move_to(metadata_object_signer, State {
+        paused: false,
+        denylist: smart_table::new(),
+    });
+
+    // Override the deposit and withdraw functions which mean overriding transfer.
+    // This ensures all transfer will call withdraw and deposit functions in this module and perform the necessary
+    // checks.
+    let deposit = function_info::new_function_info(
+        usdk_signer,
+        string::utf8(b"usdk"),
+        string::utf8(b"deposit"),
+    );
+    let withdraw = function_info::new_function_info(
+        usdk_signer,
+        string::utf8(b"usdk"),
+        string::utf8(b"withdraw"),
+    );
+    dispatchable_fungible_asset::register_dispatch_functions(
+        constructor_ref,
+        option::some(withdraw),
+        option::some(deposit),
+        option::none(),
+    );
+}
+```

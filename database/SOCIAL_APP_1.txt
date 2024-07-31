@@ -1,0 +1,91 @@
+// The Holding struct represents the state of a user's holdings of keys. It contains:
+// keys: The number of keys the user holds.
+// last_price: The last price at which the keys were traded.
+```
+struct Holding has key {
+    issuer: address,
+    holder: address,
+    shares: u64,
+}
+```
+// The User struct represents a user in the system. It contains:
+// holdings: A vector of ObjectIDs, each pointing to a Holding object representing the keys held by the user.
+```
+struct User has key {
+    holdings: vector<object::Object<Holding>>,
+}
+```
+// The Issuer struct represents an issuer of keys. It contains:
+// owner: The address of the issuer.
+// supply: The current supply of keys issued by this issuer.
+```
+struct Issuer has key {
+    addr: address,
+    username: string::String,
+    total_issued_shares: u64,
+    holder_holdings: vector<object::Object<Holding>>,
+}
+```
+// The IssuerRegistry struct maintains a registry of all issuers. It contains:
+// issuers: A vector of ObjectIDs, each pointing to an Issuer object.
+```
+struct IssuerRegistry has key {
+    issuers: vector<object::Object<Issuer>>
+}
+```
+// The Vault struct represents the vault of the system. It contains:
+// oct_per_aptos: The exchange rate of octs per Aptos coin.
+```
+struct Vault has key {
+    extend_ref: object::ExtendRef,
+}
+```
+// The IssueKeyEvent struct is used to log key issuance events. It contains:
+// issuer: The address of the issuer.
+// supply: The supply of keys issued.
+```
+#[event]
+struct IssueKeyEvent has store, drop {
+    issuer_addr: address,
+    issuer_obj: object::Object<Issuer>,
+    username: string::String,
+}
+```
+// The BuyKeyEvent struct is used to log key buying events. It contains:
+// buyer: The address of the buyer.
+// issuer: The address of the issuer.
+// amount: The number of keys bought.
+// cost: The cost of the keys bought.
+```
+#[event]
+struct BuyKeyEvent has store, drop {
+    issuer_addr: address,
+    issuer_obj: object::Object<Issuer>,
+    buyer_addr: address,
+    buyer_user_obj: object::Object<User>,
+    amount: u64,
+    key_cost: u64,
+    issuer_fee: u64,
+    protocol_fee: u64,
+    total_cost: u64,
+}
+```
+// The SellKeyEvent struct is used to log key selling events. It contains:
+// seller: The address of the seller.
+// issuer: The address of the issuer.
+// amount: The number of keys sold.
+// reward: The reward received for selling the keys.
+```
+#[event]
+struct SellKeyEvent has store, drop {
+    issuer_addr: address,
+    issuer_obj: object::Object<Issuer>,
+    seller_addr: address,
+    seller_user_obj: object::Object<User>,
+    amount: u64,
+    key_cost: u64,
+    issuer_fee: u64,
+    protocol_fee: u64,
+    total_cost: u64,
+}
+```

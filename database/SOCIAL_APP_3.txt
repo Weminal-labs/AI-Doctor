@@ -1,0 +1,73 @@
+// The issue_key function is implemented to create and issue a new key to a specified account. This function is part of the smart contract logic for managing user authentication or authorization within the social app.
+// To implement this function, we need:
+
+// Parameters:
+// issuer: A reference to the signer's address who is issuing the key.
+// account: The account to which the key is being issued.
+// key: The key value being issued.
+// Process: 
+// Create an object constructor reference for the new key.
+// Check if the key is already associated with the account. If not, create a new issue key, else return a error code
+// Create a named object constructor reference for the issuer.
+// Create a named object constructor reference for the holding.
+// Create and move a Holding object to the holding signer.
+// Create and move an Issuer object to the issuer signer.
+// Check if the user already exists, and update or create the User object accordingly.
+// Add the new issuer to the IssuerRegistry.
+// Emit an event to signal that a key has been issued.
+```
+public entry fun issue_key(
+    sender: &signer,
+    username: string::String,
+) acquires User, IssuerRegistry {
+    let sender_addr = signer::address_of(sender);
+    assert!(!exists<Issuer>(get_issuer_obj_addr(sender_addr)), E_USER_ALREADY_ISSUED_KEY);
+    let issuer_obj_constructor_ref = &object::create_named_object(
+        sender,
+        construct_issuer_object_seed(sender_addr)
+    );
+    let issuer_obj_signer = object::generate_signer(issuer_obj_constructor_ref);
+
+    let holding_obj_constructor_ref = &object::create_named_object(
+        sender,
+        construct_holding_object_seed(sender_addr, sender_addr)
+    );
+    let holding_obj_signer = object::generate_signer(holding_obj_constructor_ref);
+
+    move_to(&holding_obj_signer, Holding {
+        issuer: sender_addr,
+        holder: sender_addr,
+        shares: 1,
+    });
+
+    move_to(&issuer_obj_signer, Issuer {
+        addr: sender_addr,
+        username,
+        total_issued_shares: 1,
+        holder_holdings: vector[get_holding_obj(sender_addr, sender_addr)],
+    });
+
+    if (exists<User>(get_user_obj_addr(sender_addr))) {
+        let user_obj = borrow_global_mut<User>(get_user_obj_addr(sender_addr));
+        vector::push_back(&mut user_obj.holdings, get_holding_obj(sender_addr, sender_addr));
+    } else {
+        let user_obj_constructor_ref = &object::create_named_object(
+            sender,
+            construct_user_object_seed(sender_addr)
+        );
+        let user_obj_signer = object::generate_signer(user_obj_constructor_ref);
+        move_to(&user_obj_signer, User {
+            holdings: vector[get_holding_obj(sender_addr, sender_addr)],
+        });
+    };
+
+    let registry = borrow_global_mut<IssuerRegistry>(@friend_tech_addr);
+    vector::push_back(&mut registry.issuers, get_issuer_obj(sender_addr));
+
+    event::emit(IssueKeyEvent {
+        issuer_addr: sender_addr,
+        issuer_obj: get_issuer_obj(sender_addr),
+        username,
+    });
+}
+```
