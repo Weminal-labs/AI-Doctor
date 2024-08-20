@@ -1,0 +1,32 @@
+<!-- chatbot/templates/chatbot/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Welcome to the Chatbot!</h1>
+    <button id="start-button">Start Process</button>
+    <div id="messages"></div>
+
+    <script>
+        $(document).ready(function() {
+            $('#start-button').click(function() {
+                $.ajax({
+                    url: '/chatbot/execute_steps/',  // Đường dẫn đến hàm execute_steps
+                    method: 'GET',
+                    success: function(data) {
+                        $('#messages').empty();  // Xóa các thông báo cũ
+                        data.messages.forEach(function(message) {
+                            $('#messages').append('<p>' + message + '</p>');
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

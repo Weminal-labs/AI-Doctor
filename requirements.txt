@@ -1,0 +1,10 @@
+django 
+channels 
+channels_redis 
+openai 
+langchain
+fastapi
+uvicorn
+langchain-anthropic
+python-dotenv
+websockets

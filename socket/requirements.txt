@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+langchain-anthropic
+python-dotenv
+websockets

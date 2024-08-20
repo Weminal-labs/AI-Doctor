@@ -1,5 +1,5 @@
-from embeddings import create_summary_embeddings
-from .prompts import *
+from embeddings import EmbeddingCreator
+from AI.config.prompts import *
 class ContextRetriever:
     def __init__(self, summary):
         self.summary = summary
@@ -25,8 +25,8 @@ class ContextRetriever:
         return final_id_related
     
     def get_context(self, query):
-        qdrant_summary = create_summary_embeddings(self.summary)
-        search_results = qdrant_summary.similarity_search(query, k=1)
+        qdrant_summary = EmbeddingCreator().get_vector_database()
+        search_results = qdrant_summary.similarity_search(query, k=10)
         final_id = self.get_id_related(search_results[0].metadata['id'])
         print("retrieved documents:  \n", search_results)
         count = 1

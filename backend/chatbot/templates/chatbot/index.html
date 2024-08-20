@@ -1,0 +1,42 @@
+<!-- chatbot/templates/chatbot/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Welcome to the Chatbot!</h1>
+    <button id="start-button">Start Process</button>
+    <div id="messages"></div>
+
+    <script>
+        $(document).ready(function() {
+            $('#start-button').click(function() {
+                $('#messages').empty();  // Xóa các thông báo cũ
+                $(this).prop('disabled', true);  // Vô hiệu hóa nút
+                startProcess(0);  // Bắt đầu quá trình từ bước 0
+            });
+
+            function startProcess(step) {
+                $.ajax({
+                    url: '/chatbot/execute_steps/',  // Đường dẫn đến hàm execute_steps
+                    method: 'GET',
+                    success: function(data) {
+                        if (step < data.messages.length) {
+                            $('#messages').append('<p>' + data.messages[step] + '</p>');
+                            setTimeout(function() {
+                                startProcess(step + 1);  // Gọi bước tiếp theo sau 2 giây
+                            }, 2000);  // Đợi 2 giây trước khi gọi bước tiếp theo
+                        } else {
+                            $('#start-button').prop('disabled', false);  // Kích hoạt lại nút khi hoàn thành
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
