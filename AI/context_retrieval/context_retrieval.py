@@ -1,15 +1,24 @@
 from embeddings import EmbeddingCreator
 from AI.config.prompts import *
+import pymongo
 class ContextRetriever:
-    def __init__(self, summary):
-        self.summary = summary
+    def __init__(self):
+        client = pymongo.MongoClient("localhost", 27017, maxPoolSize=50)
+        db = client.localhost
+        summary_collection = db['documents']
+        summary= summary_collection.find({})
+        
+        cluster_collection = db['cluster']
+        clusters= cluster_collection.find({})
+        
         self.template_document_xml = '''
         \t<document index= {index} >
             \t<document_content>
-              \t{summary}
+              \t{document}
             \t</document_content>
         \t</document>
         '''
+        self. 
 
     def get_id_related(self, cluster_list, id):
         list_id_cluster = []
@@ -34,7 +43,7 @@ class ContextRetriever:
         document_graph = ''
         for index_document in list(set(final_id)):
             item = self.summary[int(index_document)]
-            document_xml = self.template_document_xml.format(index=count, summary=item['text'])
+            document_xml = self.template_document_xml.format(index=count, document=item['text'])
             document_graph += "\n" + document_xml
             count += 1
         return document_graph

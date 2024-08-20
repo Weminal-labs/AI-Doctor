@@ -1,8 +1,8 @@
 from AI.config.config import *
 from AI.query_processor.question_processing import QuestionProcessor
-from AI.context_retrieval.context_retrieval import get_context
+from AI.context_retrieval.context_retrieval import ContextRetriever
 from AI.answer_generation.answer_generation import answer_question
-def main(summary, clusters):
+def main():
     chat_history_str = ''
     while True:
         question = input("Enter your question (or type 'exit' to quit): ")
@@ -40,7 +40,7 @@ def main(summary, clusters):
         label = QuestionProcessor().question_classification(final_question)
         if label == 1:
             # Step 8 If the question is classified as requiring context, retrieve it
-            context += get_context(final_question, summary)  # Assume you have a variable summary containing document summaries
+            context += ContextRetriever().get_context(final_question)  # Assume you have a variable summary containing document summaries
 
         # step 9 Answer the final question using the retrieved context
         answer = answer_question(final_question, context, chat_history_str)
@@ -50,6 +50,4 @@ def main(summary, clusters):
         chat_history_str += f'User: {question}\nAssistant: {answer}\n'
 
 if __name__ == "__main__":
-    summary = ''
-    clusters = ''
-    main(summary, clusters)
+    main()
