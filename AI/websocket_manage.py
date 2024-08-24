@@ -52,9 +52,7 @@ class WebSocketManager:
             '_type': 'final_question',
             'data': final_question
         }
-        # Đặt lại câu hỏi đã được viết lại thành câu hỏi cuối cùng
         self.rewritten_question = final_question
-        # Gửi sự kiện 'final_question' đến phòng có id là sid, kèm theo dữ liệu response_data
         await sio.emit('final_question', response_data, room=sid)
 
     @sio.on('get_context_ids')
@@ -80,7 +78,7 @@ class WebSocketManager:
         if package_id.startswith("0x") > 0 or is_package_id == True:
             self.context += "\n" + ContextRetriever().get_context_with_package_id(package_id)
         # Xử lý câu trả lời cuối cùng dựa trên các ID đã chọn
-        for chunk in AIModel().claude_3_haiku.astream.invoke(answer_question_prompt.format(question = self.rewritten_question, context = self.context, chat_history = self.chat_history))
+        for chunk in AIModel().claude_3_haiku.astream.invoke(answer_question_prompt.format(question = self.rewritten_question, context = self.context, chat_history = self.chat_history)):
             await sio.emit('stream_start', chunk, room=sid)
 
 if __name__ == '__main__':
