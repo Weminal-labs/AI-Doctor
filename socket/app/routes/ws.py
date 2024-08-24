@@ -1,6 +1,6 @@
 from fastapi import APIRouter, WebSocket 
 import sys
-sys.path.append('D:/Weminal/Aptopus-AI/src/chatbot/project_root') 
+sys.path.append('D:/Weminal/Aptopus-AI/src/chatbot/socket') 
 from langchain_anthropic import ChatAnthropic
 from app.config import ANTHROPIC_API_KEY
 

@@ -1,5 +1,5 @@
 import sys
-sys.path.append('D:/Weminal/Aptopus-AI/src/chatbot/project_root')  # Thêm đường dẫn vào sys.path
+sys.path.append('D:/Weminal/Aptopus-AI/src/chatbot/socket')  # Thêm đường dẫn vào sys.path
 from app.main import app
 import sys
 
