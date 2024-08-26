@@ -18,8 +18,8 @@ class WebSocketManager:
     def __init__(self):
         self.mongodb_uri = os.getenv("MONGODB_URI")
         self.client = pymongo.MongoClient(self.mongodb_uri)
-        self.db =self.client['octopus']
-        self.chat_history_dictionary = self.db['history'] 
+        self.db = self.client['octopus']
+        self.chat_history_dictionary = self.db.history.find()
         self.question = ''
         self.rewritten_question = ''
         self.context = ''
@@ -27,8 +27,9 @@ class WebSocketManager:
         self.is_package_id = False
         self.is_retrieval = False
         self.chat_history = ''
-        for item in self.chat_history_dictionary:
-            self.chat_history += "USER's QUESTION:   \n" + item['user'] + "ASSISTANT's ANSWER:    \n" + item['assistant']
+        if self.chat_history_dictionary:
+            for item in self.chat_history_dictionary:
+                self.chat_history += "USER's QUESTION:   \n" + item['user'] + "ASSISTANT's ANSWER:    \n" + item['assistant']
             
         # TODO gọi từ db chat_history
 
@@ -113,7 +114,7 @@ class WebSocketManager:
             prompt = self.rewritten_question
         for chunk in AIModel().claude_3_haiku.astream.invoke(prompt):
             await sio.emit('stream_start', chunk, room=sid)
-    
     app.router.add_get('/', index)
 if __name__ == '__main__':
     web.run_app(app, host='0.0.0.0', port=8080)
+    
