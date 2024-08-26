@@ -3,7 +3,7 @@ from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
 from langchain_anthropic import ChatAnthropic
 import asyncio
-from AI.config.config import AIModel
+from config.config import AIModel
 import os
 from dotenv import load_dotenv
 

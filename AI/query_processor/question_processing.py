@@ -1,6 +1,6 @@
 import json
-from AI.config.config import AIModel
-from AI.config.prompts import *
+from config.config import AIModel
+from config.prompts import *
 from typing import List
 from langchain_core.pydantic_v1 import BaseModel, Field
 

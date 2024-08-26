@@ -19,7 +19,7 @@ class AIModel:
         
 
     def configure_google_ai(self):
-        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+        genconfigure(api_key=os.getenv("GOOGLE_API_KEY"))
         
         generation_config = {
             "temperature": 0.1,
@@ -29,7 +29,7 @@ class AIModel:
             "response_mime_type": "application/json",
         }
         
-        self.model_gemini = genai.GenerativeModel(
+        self.model_gemini = genGenerativeModel(
             model_name="gemini-1.5-flash",
             generation_config=generation_config,
         )

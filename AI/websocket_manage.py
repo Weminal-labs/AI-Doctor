@@ -1,14 +1,14 @@
 import sys
-sys.path.append("D:/Weminal/Aptopus-AI/src/chatbot")
+# sys.path.append("D:/Weminal/Aptopus-AI/src/chatbot")
 import socketio
-from AI.query_processor.question_processing import QuestionProcessor
-from AI.answer_generation.answer_generation import answer_question
-from AI.context_retrieval.context_retrieval import ContextRetriever
-from AI.config.config import AIModel
+from query_processor.question_processing import QuestionProcessor
+from answer_generation.answer_generation import answer_question
+from context_retrieval.context_retrieval import ContextRetriever
+from config.config import AIModel
 import pymongo
 from aiohttp import web
 from aiohttp_cors import setup as cors_setup, ResourceOptions
-from AI.config.prompts import *
+from config.prompts import *
 
 sio = socketio.AsyncServer(async_mode='aiohttp')
 app = web.Application()
