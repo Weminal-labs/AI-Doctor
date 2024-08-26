@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-langchain-anthropic
-python-dotenv
-websockets
-python-socketio
-aiohttp_cors
