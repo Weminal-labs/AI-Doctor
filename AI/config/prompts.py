@@ -11,7 +11,7 @@ class PromptLoader:
             return json.load(file)
 
 # Sử dụng
-prompt_loader = PromptLoader(os.path.join(os.path.dirname(__file__), 'prompts.json'))
+prompt_loader = PromptLoader(os.path.join(os.path.dirname(__file__), 'prompts_config.json'))
 answer_question_prompt = prompt_loader.prompts.get("answer_question_prompt")
 rewrite_question_prompt = prompt_loader.prompts.get("rewrite_question_prompt")
 follow_up_questions_prompt = prompt_loader.prompts.get("follow_up_questions_prompt")

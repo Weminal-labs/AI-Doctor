@@ -1,10 +1,9 @@
 from langchain.docstore.document import Document
 from langchain_community.vectorstores import Qdrant
-from AI.config.config import embeddings
 from langchain_qdrant import Qdrant  # Đảm bảo đã import Qdrant
 import qdrant_client  # Đảm bảo đã import qdrant_client
 from dotenv import dotenv_values 
-from .embeddings import AIModel
+from AI.config.config import AIModel
 
 from AI.config.prompts import *
 class EmbeddingCreator:

@@ -3,4 +3,5 @@ uvicorn
 langchain-anthropic
 python-dotenv
 websockets
-socketio
+python-socketio
+aiohttp_cors

@@ -1,5 +1,5 @@
 import json
-from AI.config.config import claude_3_haiku
+from AI.config.config import AIModel
 from AI.config.prompts import *
 from typing import List
 from langchain_core.pydantic_v1 import BaseModel, Field
@@ -35,7 +35,7 @@ class QuestionProcessor:
         ),
         ("human", prompt)
     ]
-        completion = claude_3_haiku.invoke(messages)
+        completion = AIModel.claude_3_haiku.invoke(messages)
         return completion.content.strip().strip("\n")
     
     def get_package_id(self, query):
@@ -45,7 +45,7 @@ class QuestionProcessor:
         ),
         ("human", package_id_identification_prompt.format(query = query))
     ]
-        structured_llm= claude_3_haiku.with_structured_output(PackageID)
+        structured_llm= AIModel.claude_3_haiku.with_structured_output(PackageID)
         response = structured_llm.invoke(messages)
         return response.package_id, response.is_package_id
 
@@ -57,7 +57,7 @@ class QuestionProcessor:
         ),
         ("human", follow_up_questions_prompt.format(question = question, chat_history = chat_history))
     ]
-        structured_llm= claude_3_haiku.with_structured_output(FollowUpQuestionResponse)
+        structured_llm= AIModel.claude_3_haiku.with_structured_output(FollowUpQuestionResponse)
         response = structured_llm.invoke(messages)
         return response
 
@@ -67,11 +67,11 @@ class QuestionProcessor:
             index = id + 1
             follow_up_questions_answers += "\n" + self.follow_up_questions_answers_format.format(index=index, question=follow_up_questions[id], answer=follow_up_answers[id])
         prompt = final_question_prompt.format(user_question=user_question, follow_up_questions_answers=follow_up_questions_answers)
-        completion = claude_3_haiku.invoke(prompt)
+        completion = AIModel.claude_3_haiku.invoke(prompt)
         return completion.content.strip().strip("\n")
 
     def question_classification(self, question):
         prompt = question_classification_prompt.format(question=question)
-        completion = claude_3_haiku.invoke(prompt)
+        completion = AIModel.claude_3_haiku.invoke(prompt)
         review_response = completion.content.strip().strip("\n")
         return int(review_response)

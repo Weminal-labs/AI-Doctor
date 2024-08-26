@@ -1,4 +1,4 @@
-from embeddings import EmbeddingCreator
+from AI.context_retrieval.embeddings import EmbeddingCreator
 from AI.config.prompts import *
 import pymongo
 import os
