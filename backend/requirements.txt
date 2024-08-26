@@ -1,5 +1,0 @@
-django 
-channels 
-channels_redis 
-openai 
-langchain
