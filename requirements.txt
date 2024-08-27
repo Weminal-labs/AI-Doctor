@@ -10,4 +10,10 @@ langchain
 langchain-anthropic
 python-dotenv
 websockets
-langchain_aws
+langchain-aws
+langchain-qdrant 
+qdrant-client
+langchain-community
+pymongo
+boto3
+langchain-core
