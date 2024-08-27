@@ -12,6 +12,8 @@ import json
 import os
 
 app = FastAPI()
+
+# HTML for testing
 html = """<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -61,14 +63,17 @@ html = """<!DOCTYPE html>
 </body>
 </html>"""
 
+
+# class for websocket
 class WebSocketManager:
     def __init__(self):
-        self.model = AIModel().claude_3_haiku
-        print(self.model)
+        self.model = AIModel().claude_3_haiku 
+        # get history from mongodb
         self.mongodb_uri = os.getenv("MONGODB_URI")
         self.client = pymongo.MongoClient(self.mongodb_uri)
         self.db = self.client['octopus']
         self.chat_history_dictionary = self.db.history.find()
+        # init variable 
         self.question = ''
         self.rewritten_question = ''
         self.context = ''
@@ -95,14 +100,14 @@ class WebSocketManager:
         self.question = data['data']
         rewritten_question = QuestionProcessor().rewrite_question(self.question, self.chat_history)
         self.rewritten_question = rewritten_question
-        await websocket.send_text(rewritten_question)
+        # await websocket.send_text(rewritten_question)
         is_retrieval = QuestionProcessor().question_classification(self.rewritten_question)
         self.is_retrieval = True if int(is_retrieval) == 1 else False
         # print("chạy tới này rồi")
         self.package_id, self.is_package_id = QuestionProcessor().get_package_id(self.rewritten_question)
         
         if self.is_retrieval == True or self.is_package_id == False:
-            follow_up_question_list = QuestionProcessor().get_follow_up_questions(question, "")
+            follow_up_question_list = QuestionProcessor().get_follow_up_questions(self.rewritten_question, "")
             response_data = {
                 'type': 'follow_up',
                 'data': follow_up_question_list.follow_up_questions
@@ -148,8 +153,23 @@ class WebSocketManager:
             prompt = answer_question_prompt.format(question=self.rewritten_question, context=self.context, chat_history=self.chat_history)
         else:
             prompt = self.rewritten_question
-        answer = answer_question(prompt, self.context, self.chat_history)
-        await websocket.send_json({"type":"answer", "data": answer})
+        messages = [
+    (
+        "system",
+        "You are a seasoned and experienced programmer for the Move programming language on the Aptos.",
+            ),
+            ("human", prompt),
+        ]
+        # answer = ''
+        for chunk in self.model.stream(messages):
+            await websocket.send_json({"type":"answer", "data": chunk.content})
+        #     print("chunk.content:   ",chunk.content)
+        #     try:
+        #         answer += chunk.content
+        #         print("answer:   ", answer)
+        #     except:
+        #         pass
+        # await websocket.send_text("Final answer:    \n" +answer)
 
 ws_manager = WebSocketManager()
 
@@ -171,5 +191,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: int):
                 await ws_manager.handle_get_context_ids(websocket, data)
             elif data['type'] == 'user_selected_context_ids':
                 await ws_manager.handle_user_selected_context_ids(websocket, data)
+            elif data['type'] == 'handle_answer':
+                await ws_manager.handle_answer(websocket)
     except Exception as e:
         print(e)
