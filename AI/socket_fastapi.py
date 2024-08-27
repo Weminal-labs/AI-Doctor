@@ -1,19 +1,21 @@
 import sys
-sys.path.append("D:/Weminal/Aptopus-AI/src/chatbot")
+import os
+import json
+import pymongo
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import HTMLResponse
 from AI.query_processor.question_processing import QuestionProcessor
 from AI.answer_generation.answer_generation import answer_question
 from AI.context_retrieval.context_retrieval import ContextRetriever
 from AI.config.config import AIModel
-import pymongo
 from AI.config.prompts import *
-import json
-import os
 
-app = FastAPI()
+sys.path.append("D:/Weminal/Aptopus-AI/src/chatbot")  # Append the path to the chatbot directory
 
-# HTML for testing
+app = FastAPI()  # Initialize the FastAPI application
+
+# HTML for testing purposes
+# TODO remember change client_id based on user's profile
 html = """<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -23,22 +25,22 @@ html = """<!DOCTYPE html>
 </head>
 <body>
     <h1>WebSocket Chat</h1>
-    <h2>ID của bạn: <span id="ws-id"></span></h2>
+    <h2>Your ID: <span id="ws-id"></span></h2>
     <form action="" onsubmit="sendMessage(event)">
-        <input type="text" id="messageText" autocomplete="off" placeholder="Nhập tin nhắn"/>
+        <input type="text" id="messageText" autocomplete="off" placeholder="Enter message"/>
         <select id="messageType">
-            <option value="receive_question">Nhận câu hỏi</option>
-            <option value="receive_follow_up_question">Nhận câu hỏi tiếp theo</option>
-            <option value="get_context_ids">Lấy ID ngữ cảnh</option>
-            <option value="user_selected_context_ids">ID ngữ cảnh đã chọn</option>
-            <option value="handle_answer">Xử lý câu trả lời</option>
+            <option value="receive_question">Receive question</option>
+            <option value="receive_follow_up_question">Receive next question</option>
+            <option value="get_context_ids">Get context IDs</option>
+            <option value="user_selected_context_ids">Selected context IDs</option>
+            <option value="handle_answer">Handle answer</option>
         </select>
-        <button>Gửi</button>
+        <button>Send</button>
     </form>
     <ul id='messages'>
     </ul>
     <script>
-        var client_id = 12345
+        var client_id = 12345 
         document.querySelector("#ws-id").textContent = client_id;
         var ws = new WebSocket(`ws://localhost:8000/ws/12345`);
         ws.onmessage = function(event) {
@@ -63,135 +65,157 @@ html = """<!DOCTYPE html>
 </body>
 </html>"""
 
-
-# class for websocket
 class WebSocketManager:
     def __init__(self):
-        self.model = AIModel().claude_3_haiku 
-        # get history from mongodb
-        self.mongodb_uri = os.getenv("MONGODB_URI")
-        self.client = pymongo.MongoClient(self.mongodb_uri)
-        self.db = self.client['octopus']
-        self.chat_history_dictionary = self.db.history.find()
-        # init variable 
-        self.question = ''
-        self.rewritten_question = ''
-        self.context = ''
-        self.final_context_id = []
-        self.final_question = ''
-        self.is_package_id = False
-        self.package_id = ''
-        self.is_retrieval = False
-        self.chat_history = ''
+        self.model = AIModel().claude_3_haiku  # Initialize the AI model
+        self.mongodb_uri = os.getenv("MONGODB_URI")  # Get the MongoDB URI from environment variables
+        self.client = pymongo.MongoClient(self.mongodb_uri)  # Connect to MongoDB
+        self.db = self.client['octopus']  # Select the database
+        self.chat_history_dictionary = self.db.history.find()  # Find all chat history documents
+        self.question = ''  # Initialize the question
+        self.rewritten_question = ''  # Initialize the rewritten question
+        self.context = ''  # Initialize the context
+        self.final_context_id = []  # Initialize the final context ID list
+        self.final_question = ''  # Initialize the final question
+        self.is_package_id = False  # Initialize the package ID flag
+        self.package_id = ''  # Initialize the package ID
+        self.is_retrieval = False  # Initialize the retrieval flag
+        self.chat_history = ''  # Initialize the chat history
         if self.chat_history_dictionary:
             for item in self.chat_history_dictionary:
-                self.chat_history += "USER's QUESTION:   \n" + item['user'] + "ASSISTANT's ANSWER:    \n" + item['assistant']
-        self.active_connections: list[WebSocket] = []
+                self.chat_history += f"USER's QUESTION:\n{item['user']}ASSISTANT's ANSWER:\n{item['assistant']}"  # Build the chat history
+        self.active_connections: list[WebSocket] = []  # Initialize the active connections list
 
     async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
+        await websocket.accept()  # Accept the WebSocket connection
+        self.active_connections.append(websocket)  # Add the WebSocket to the active connections list
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        self.active_connections.remove(websocket)  # Remove the WebSocket from the active connections list
 
-        
     async def handle_receive_question(self, websocket: WebSocket, data):
-        self.question = data['data']
-        rewritten_question = QuestionProcessor().rewrite_question(self.question, self.chat_history)
-        self.rewritten_question = rewritten_question
-        # await websocket.send_text(rewritten_question)
-        is_retrieval = QuestionProcessor().question_classification(self.rewritten_question)
-        self.is_retrieval = True if int(is_retrieval) == 1 else False
-        # print("chạy tới này rồi")
-        self.package_id, self.is_package_id = QuestionProcessor().get_package_id(self.rewritten_question)
-        
-        if self.is_retrieval == True or self.is_package_id == False:
-            follow_up_question_list = QuestionProcessor().get_follow_up_questions(self.rewritten_question, "")
-            response_data = {
-                'type': 'follow_up',
-                'data': follow_up_question_list.follow_up_questions
-            }
-            await websocket.send_json(response_data)
+        """
+
+        Args:
+            data: Data from front-end
+            format:
+                {"data": "question of user }
+        """
+        self.question = data['data']  # Set the question
+        question_processor = QuestionProcessor()  # Initialize the question processor
+        self.rewritten_question = question_processor.rewrite_question(self.question, self.chat_history)  # Rewrite the question
+        # print(self.rewritten_question)
+        await websocket.send_text(self.rewritten_question)
+        self.is_retrieval = bool(int(question_processor.question_classification(self.rewritten_question)))  # Determine if retrieval is needed
+        # print(self.is_retrieval)
+        if self.is_retrieval:
+            self.package_id, self.is_package_id = question_processor.get_package_id(self.rewritten_question)
+            if not self.is_package_id: # Get the package ID and determine if it's a package IDor not self.is_package_id:
+                follow_up_question_list = question_processor.get_follow_up_questions(self.rewritten_question, "")  # Get follow-up questions
+                response_data = {
+                    'type': 'follow_up',
+                    'data': follow_up_question_list.follow_up_questions
+                }
+                await websocket.send_json(response_data)  # Send follow-up questions
         else:
-            await websocket.send_text('stream_start')
+            await websocket.send_text('stream_start')  # Send stream start message
 
     async def handle_follow_up_question(self, websocket: WebSocket, data: dict):
-        follow_up_questions = data['data']['follow_up_question']
-        follow_up_answers = data['data']['follow_up_answer']
-        final_question = QuestionProcessor().get_final_question(self.rewritten_question, follow_up_questions, follow_up_answers)
+        """
+
+        Args:
+            websocket (WebSocket): _description_
+            data (dict): follow-up question and answer
+            format:
+                {
+                    "data" : {
+                            "follow_up_question" : ["question 1", "question 2",..],
+                            "follow_up_answer": ["answer 1", "answer 2",..]
+                            }
+                }
+        """
+        follow_up_questions = data['data']['follow_up_question']  # Get follow-up questions
+        follow_up_answers = data['data']['follow_up_answer']  # Get follow-up answers
+        final_question = QuestionProcessor().get_final_question(
+            self.rewritten_question, follow_up_questions, follow_up_answers
+        )  # Get the final question
         response_data = {
             'type': 'final_question',
             'data': final_question
         }
-        self.rewritten_question = final_question
-        await websocket.send_json(response_data)
+        self.rewritten_question = final_question  # Update the rewritten question
+        await websocket.send_json(response_data)  # Send the final question
 
-    async def handle_get_context_ids(self, websocket: WebSocket, data: dict):
-        final_question = data['data']
-        context_ids = ContextRetriever().get_context_ids_relevant(final_question)
+    async def handle_get_context_ids(self, websocket: WebSocket):
+        context_ids = ContextRetriever().get_context_ids_relevant(self.final_question)  # Get relevant context IDs
         response_data = {
             'type': 'relevant_docs',
             'data': context_ids
         }
-        await websocket.send_json(response_data)
+        await websocket.send_json(response_data)  # Send the relevant context IDs
 
     async def handle_user_selected_context_ids(self, websocket: WebSocket, data: dict):
-        if self.package_id.startswith("0x") or self.is_package_id == True:
-            self.context += "\n" + ContextRetriever().get_context_with_package_id(self.package_id)
+        """
+
+        Args:
+            websocket (WebSocket): _description_
+            data (list[int]): follow-up question and answer
+            format:
+                {
+                    "selected_ids" : [index 1, index 2]
+                }
+        """
+        context_retriever = ContextRetriever()  # Initialize the context retriever
+        if self.package_id.startswith("0x") or self.is_package_id:
+            self.context += f"\n{context_retriever.get_context_with_package_id(self.package_id)}"  # Add context with package ID
             
-        if self.is_retrieval == True:
-            selected_ids = data['selected_ids']
-            final_context_id = ContextRetriever().get_id_relevant(selected_ids)
-            context = ContextRetriever().get_context(final_context_id)
-            self.context += "\n" + context
-            
+        if self.is_retrieval:
+            selected_ids = data['selected_ids']  # Get selected IDs
+            final_context_id = context_retriever.get_id_relevant(selected_ids)  # Get the final context ID
+            websocket.send_json({"final_id_relevants": final_context_id})
+            context = context_retriever.get_context(final_context_id)  # Get the context
+            self.context += f"\n{context}"  # Add the context
+
     async def handle_answer(self, websocket: WebSocket):
-        if self.package_id.startswith("0x") or self.is_package_id == True:
-            prompt = answer_question_prompt.format(question=self.rewritten_question, context=self.context, chat_history=self.chat_history)
-        elif self.is_retrieval == True:
-            prompt = answer_question_prompt.format(question=self.rewritten_question, context=self.context, chat_history=self.chat_history)
+        if self.package_id.startswith("0x") or self.is_package_id or self.is_retrieval:
+            prompt = answer_question_prompt.format(
+                question=self.rewritten_question,
+                context=self.context,
+                chat_history=self.chat_history
+            )  # Format the prompt for package ID or retrieval
         else:
-            prompt = self.rewritten_question
+            prompt = self.rewritten_question  # Use the rewritten question as the prompt
+        await websocket.send_text("prompt:  "+prompt)
         messages = [
-    (
-        "system",
-        "You are a seasoned and experienced programmer for the Move programming language on the Aptos.",
-            ),
+            ("system", "You are a seasoned and experienced programmer for the Move programming language on the Aptos."),
             ("human", prompt),
         ]
-        # answer = ''
+        
         for chunk in self.model.stream(messages):
-            await websocket.send_json({"type":"answer", "data": chunk.content})
-        #     print("chunk.content:   ",chunk.content)
-        #     try:
-        #         answer += chunk.content
-        #         print("answer:   ", answer)
-        #     except:
-        #         pass
-        # await websocket.send_text("Final answer:    \n" +answer)
+            await websocket.send_json({"type": "answer", "data": chunk.content})  # Send the answer
 
 ws_manager = WebSocketManager()
 
 @app.get("/")
 async def get():
-    return HTMLResponse(html)
+    return HTMLResponse(html)  # Return the HTML response
 
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: int):
-    await ws_manager.connect(websocket)
+    await ws_manager.connect(websocket)  # Connect the WebSocket
     try:
         while True:
-            data = await websocket.receive_json()
-            if data['type'] == 'receive_question':
-                await ws_manager.handle_receive_question(websocket, data)
-            elif data['type'] == 'receive_follow_up_question':
-                await ws_manager.handle_follow_up_question(websocket, data)
-            elif data['type'] == 'get_context_ids':
-                await ws_manager.handle_get_context_ids(websocket, data)
-            elif data['type'] == 'user_selected_context_ids':
-                await ws_manager.handle_user_selected_context_ids(websocket, data)
-            elif data['type'] == 'handle_answer':
-                await ws_manager.handle_answer(websocket)
+            data = await websocket.receive_json()  # Receive JSON data
+            match data['type']:
+                case 'receive_question':
+                    await ws_manager.handle_receive_question(websocket, data)  # Handle receive question
+                case 'receive_follow_up_question':
+                    await ws_manager.handle_follow_up_question(websocket, data)  # Handle receive follow-up question
+                case 'get_context_ids':
+                    await ws_manager.handle_get_context_ids(websocket, data)  # Handle get context IDs
+                case 'user_selected_context_ids':
+                    await ws_manager.handle_user_selected_context_ids(websocket, data)  # Handle user selected context IDs
+                case 'handle_answer':
+                    await ws_manager.handle_answer(websocket)  # Handle answer
     except Exception as e:
-        print(e)
+        print(e)  # Print any exceptions
