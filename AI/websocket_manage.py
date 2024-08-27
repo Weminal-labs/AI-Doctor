@@ -1,14 +1,14 @@
 import sys
-# sys.path.append("D:/Weminal/Aptopus-AI/src/chatbot")
+sys.path.append("D:/Weminal/Aptopus-AI/src/chatbot")
 import socketio
-from query_processor.question_processing import QuestionProcessor
-from answer_generation.answer_generation import answer_question
-from context_retrieval.context_retrieval import ContextRetriever
-from config.config import AIModel
+from AI.query_processor.question_processing import QuestionProcessor
+from AI.answer_generation.answer_generation import answer_question
+from AI.context_retrieval.context_retrieval import ContextRetriever
+from AI.config.config import AIModel
 import pymongo
 from aiohttp import web
 from aiohttp_cors import setup as cors_setup, ResourceOptions
-from config.prompts import *
+from AI.config.prompts import *
 
 sio = socketio.AsyncServer(async_mode='aiohttp')
 app = web.Application()
@@ -110,11 +110,15 @@ class WebSocketManager:
             self.context += "\n" + ContextRetriever().get_context_with_package_id(self.package_id)
         # Xử lý câu trả lời cuối cùng dựa trên các ID đã chọn
         prompt = answer_question_prompt.format(question = self.rewritten_question, context = self.context, chat_history = self.chat_history)
+        print(self.rewritten_question)
         if self.is_retrieval == True:
             prompt = self.rewritten_question
         for chunk in AIModel().claude_3_haiku.astream.invoke(prompt):
             await sio.emit('stream_start', chunk, room=sid)
-    app.router.add_get('/', index)
-if __name__ == '__main__':
-    web.run_app(app, host='0.0.0.0', port=8080)
     
+    async def test_stream(self, question):
+        for chunk in AIModel().claude_3_haiku.astream.invoke(question):
+            await sio.emit('test_stream', chunk)
+
+if __name__ == '__main__':
+    web.run_app(app, host='127.0.0.1', port=8080)

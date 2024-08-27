@@ -3,9 +3,9 @@ from langchain_community.vectorstores import Qdrant
 from langchain_qdrant import Qdrant  # Đảm bảo đã import Qdrant
 import qdrant_client  # Đảm bảo đã import qdrant_client
 from dotenv import dotenv_values 
-from config.config import AIModel
+from AI.config.config import AIModel
 
-from config.prompts import *
+from AI.config.prompts import *
 class EmbeddingCreator:
     def __init__(self):
         url = os.getenv('QDRANT_URI')

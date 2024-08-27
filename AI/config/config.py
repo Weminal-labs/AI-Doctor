@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-import google.generativeai as genai
+# import google.generativeai as genai
 from langchain_aws import BedrockLLM, ChatBedrock, BedrockEmbeddings
 import boto3
 
@@ -14,26 +14,26 @@ class AIModel:
             aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
             aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
         )
-        self.configure_google_ai()
+        # self.configure_google_ai()
         self.configure_aws_bedrock()
         
 
-    def configure_google_ai(self):
-        genconfigure(api_key=os.getenv("GOOGLE_API_KEY"))
+    # def configure_google_ai(self):
+    #     genconfigure(api_key=os.getenv("GOOGLE_API_KEY"))
         
-        generation_config = {
-            "temperature": 0.1,
-            "top_p": 0.95,
-            "top_k": 64,
-            "max_output_tokens": 8192,
-            "response_mime_type": "application/json",
-        }
+    #     generation_config = {
+    #         "temperature": 0.1,
+    #         "top_p": 0.95,
+    #         "top_k": 64,
+    #         "max_output_tokens": 8192,
+    #         "response_mime_type": "application/json",
+    #     }
         
-        self.model_gemini = genGenerativeModel(
-            model_name="gemini-1.5-flash",
-            generation_config=generation_config,
-        )
-        self.chat_session = self.model_gemini.start_chat()
+    #     self.model_gemini = genGenerativeModel(
+    #         model_name="gemini-1.5-flash",
+    #         generation_config=generation_config,
+    #     )
+    #     self.chat_session = self.model_gemini.start_chat()
 
     def configure_aws_bedrock(self):
         self.claude_3_haiku = ChatBedrock(

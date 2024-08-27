@@ -1,7 +1,7 @@
-from config.config import *
-from query_processor.question_processing import QuestionProcessor
-from context_retrieval.context_retrieval import ContextRetriever
-from answer_generation.answer_generation import answer_question
+from AI.config.config import *
+from AI.query_processor.question_processing import QuestionProcessor
+from AI.context_retrieval.context_retrieval import ContextRetriever
+from AI.answer_generation.answer_generation import answer_question
 def main():
     chat_history_str = ''
     while True:

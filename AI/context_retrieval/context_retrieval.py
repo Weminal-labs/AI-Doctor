@@ -1,5 +1,5 @@
-from context_retrieval.embeddings import EmbeddingCreator
-from config.prompts import *
+from AI.context_retrieval.embeddings import EmbeddingCreator
+from AI.config.prompts import *
 import pymongo
 import os
 from dotenv import load_dotenv
