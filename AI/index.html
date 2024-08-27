@@ -1,60 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test WebSocket</title>
+    <title>Kiểm tra WebSocket</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        #output { border: 1px solid #ccc; padding: 10px; margin-top: 10px; min-height: 200px; }
+        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+        #output { border: 1px solid #ccc; padding: 10px; margin-top: 10px; min-height: 200px; max-height: 400px; overflow-y: auto; }
+        #questionInput { width: 300px; padding: 5px; }
+        button { padding: 5px 10px; cursor: pointer; }
+        .follow-up-question { margin: 5px 0; cursor: pointer; color: blue; text-decoration: underline; }
     </style>
 </head>
 <body>
-    <h1>Test WebSocket</h1>
+    <h1>Kiểm tra WebSocket</h1>
     <input type="text" id="questionInput" placeholder="Nhập câu hỏi của bạn">
     <button onclick="sendQuestion()">Gửi câu hỏi</button>
     <div id="output"></div>
 
     <script>
-        const socket = new WebSocket('ws://127.0.0.1:8080/');
+        const socket = new WebSocket('ws://localhost:8000/ws/' + Date.now());
         const output = document.getElementById('output');
 
         socket.onopen = function(e) {
-            output.innerHTML += '<p>Kết nối đã được thiết lập</p>';
+            appendToOutput('Kết nối đã được thiết lập', 'green');
         };
 
         socket.onmessage = function(event) {
             try {
                 const data = JSON.parse(event.data);
                 if (data._type === 'follow_up') {
-                    output.innerHTML += '<p>Câu hỏi tiếp theo:</p>';
-                    data.data.forEach(question => {
-                        output.innerHTML += `<p>- ${question}</p>`;
+                    appendToOutput('Câu hỏi tiếp theo:', 'blue');
+                    data.data.forEach((question, index) => {
+                        const questionElement = document.createElement('p');
+                        questionElement.className = 'follow-up-question';
+                        questionElement.textContent = `${index + 1}. ${question}`;
+                        questionElement.onclick = () => sendFollowUpQuestion(question);
+                        output.appendChild(questionElement);
                     });
+                } else if (data._type === 'stream_start') {
+                    appendToOutput(data.data, 'black');
                 } else {
-                    output.innerHTML += `<p>Nhận được dữ liệu: ${JSON.stringify(data)}</p>`;
+                    appendToOutput(`Nhận được dữ liệu: ${JSON.stringify(data)}`, 'purple');
                 }
             } catch (error) {
-                output.innerHTML += `<p>Nhận được: ${event.data}</p>`;
+                appendToOutput(event.data, 'black');
             }
         };
 
         socket.onclose = function(event) {
-            output.innerHTML += '<p>Kết nối đã đóng</p>';
+            appendToOutput('Kết nối đã đóng', 'red');
         };
 
         socket.onerror = function(error) {
-            output.innerHTML += `<p>Lỗi: ${error.message}</p>`;
+            appendToOutput(`Lỗi: ${error.message}`, 'red');
         };
 
         function sendQuestion() {
             const question = document.getElementById('questionInput').value;
+            if (question.trim() === '') return;
+            
             const message = {
                 type: 'receive_question',
                 question: question
             };
             socket.send(JSON.stringify(message));
-            output.innerHTML += `<p>Đã gửi câu hỏi: ${question}</p>`;
+            appendToOutput(`Đã gửi câu hỏi: ${question}`, 'blue');
+            document.getElementById('questionInput').value = '';
+        }
+
+        function sendFollowUpQuestion(question) {
+            const message = {
+                type: 'receive_follow_up_question',
+                question: question
+            };
+            socket.send(JSON.stringify(message));
+            appendToOutput(`Đã gửi câu hỏi tiếp theo: ${question}`, 'blue');
+        }
+
+        function appendToOutput(message, color) {
+            const p = document.createElement('p');
+            p.style.color = color;
+            p.textContent = message;
+            output.appendChild(p);
+            output.scrollTop = output.scrollHeight;
         }
     </script>
 </body>

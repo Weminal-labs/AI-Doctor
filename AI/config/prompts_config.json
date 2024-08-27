@@ -11,5 +11,5 @@
     
     "system_prompt": "You are an expert in writing documentation for projects related to the techniques used. The documentation must be written in a detailed, specific, and clear manner, using specialized technical terminology.",
 
-    "package_id_identification_prompt":"Analyze the following user query: \n\t\"{query}\"\n\n1. Determine if the query contains a package ID or contract address. \n2. If found, extract the exact package ID or contract address.\n\nNote:\n- Package IDs or Contract addresses are usually fixed-length alphanumeric strings, often starting with \"0x\""
+    "package_id_identification_prompt":"Analyze the following user query: \n\t\"{query}\"\n\nYour task: \n1. Determine whether the query contains a package ID or contract address. \n2. If found, extract the exact package ID or contract address.\n\nNote:\n- Package IDs or Contract addresses are usually fixed-length alphanumeric strings, often starting with \"0x\""
 }

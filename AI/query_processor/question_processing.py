@@ -10,9 +10,9 @@ class FollowUpQuestionResponse(BaseModel):
     follow_up_questions: List[str] = Field(default_factory=list, description="List of follow-up questions")
 
 class PackageID(BaseModel):
-    package_id: str = Field(description="The package id or contract address (often starting with '0x'). If no package id or contract address in user query then return empty string.")
+    package_id: str = Field(description="Return the package id or contract address (often starting with '0x'). If no package id or contract address in user query then return empty string.")
     is_package_id: bool = Field(description="Whether the user query contains package id or contract address. True or False.")
-
+    explanation: str = Field(description="The explanation for your response")
 class QuestionProcessor:
     def __init__(self):
         self.follow_up_questions_answers_format = '''
@@ -46,7 +46,9 @@ class QuestionProcessor:
         ("human", package_id_identification_prompt.format(query = query))
     ]
         structured_llm= AIModel().claude_3_haiku.with_structured_output(PackageID)
+        # print("prompt:    ", messages)
         response = structured_llm.invoke(messages)
+        # print(response)
         return response.package_id, response.is_package_id
 
     

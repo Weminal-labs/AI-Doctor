@@ -13,49 +13,52 @@ import os
 
 app = FastAPI()
 html = """<!DOCTYPE html>
-<html>
-    <head>
-        <title>Chat</title>
-    </head>
-    <body>
-        <h1>WebSocket Chat</h1>
-        <h2>Your ID: <span id="ws-id"></span></h2>
-        <form action="" onsubmit="sendMessage(event)">
-            <input type="text" id="messageText" autocomplete="off" placeholder="Nhập tin nhắn"/>
-            <select id="messageType">
-                <option value="receive_question">Nhận câu hỏi</option>
-                <option value="receive_follow_up_question">Nhận câu hỏi tiếp theo</option>
-                <option value="get_context_ids">Lấy ID ngữ cảnh</option>
-                <option value="user_selected_context_ids">ID ngữ cảnh đã chọn</option>
-            </select>
-            <button>Gửi</button>
-        </form>
-        <ul id='messages'>
-        </ul>
-        <script>
-            var client_id = Date.now()
-            document.querySelector("#ws-id").textContent = client_id;
-            var ws = new WebSocket(`ws://localhost:8000/ws/${client_id}`);
-            ws.onmessage = function(event) {
-                var messages = document.getElementById('messages')
-                var message = document.createElement('li')
-                var content = document.createTextNode(event.data)
-                message.appendChild(content)
-                messages.appendChild(message)
-            };
-            function sendMessage(event) {
-                var input = document.getElementById("messageText")
-                var type = document.getElementById("messageType")
-                var data = {
-                    type: type.value,
-                    question: input.value
-                }
-                ws.send(JSON.stringify(data))
-                input.value = ''
-                event.preventDefault()
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+</head>
+<body>
+    <h1>WebSocket Chat</h1>
+    <h2>ID của bạn: <span id="ws-id"></span></h2>
+    <form action="" onsubmit="sendMessage(event)">
+        <input type="text" id="messageText" autocomplete="off" placeholder="Nhập tin nhắn"/>
+        <select id="messageType">
+            <option value="receive_question">Nhận câu hỏi</option>
+            <option value="receive_follow_up_question">Nhận câu hỏi tiếp theo</option>
+            <option value="get_context_ids">Lấy ID ngữ cảnh</option>
+            <option value="user_selected_context_ids">ID ngữ cảnh đã chọn</option>
+            <option value="handle_answer">Xử lý câu trả lời</option>
+        </select>
+        <button>Gửi</button>
+    </form>
+    <ul id='messages'>
+    </ul>
+    <script>
+        var client_id = 12345
+        document.querySelector("#ws-id").textContent = client_id;
+        var ws = new WebSocket(`ws://localhost:8000/ws/12345`);
+        ws.onmessage = function(event) {
+            var messages = document.getElementById('messages')
+            var message = document.createElement('li')
+            var content = document.createTextNode(event.data)
+            message.appendChild(content)
+            messages.appendChild(message)
+        };
+        function sendMessage(event) {
+            var input = document.getElementById("messageText")
+            var type = document.getElementById("messageType")
+            var data = {
+                type: type.value,
+                data: input.value
             }
-        </script>
-    </body>
+            ws.send(JSON.stringify(data))
+            input.value = ''
+            event.preventDefault()
+        }
+    </script>
+</body>
 </html>"""
 
 class WebSocketManager:
@@ -69,8 +72,10 @@ class WebSocketManager:
         self.question = ''
         self.rewritten_question = ''
         self.context = ''
+        self.final_context_id = []
         self.final_question = ''
         self.is_package_id = False
+        self.package_id = ''
         self.is_retrieval = False
         self.chat_history = ''
         if self.chat_history_dictionary:
@@ -86,20 +91,20 @@ class WebSocketManager:
         self.active_connections.remove(websocket)
 
         
-    async def handle_receive_question(self, websocket: WebSocket, data: dict):
-        question = data['question']
-        self.question = question
-        rewritten_question = QuestionProcessor().rewrite_question(question, self.chat_history)
+    async def handle_receive_question(self, websocket: WebSocket, data):
+        self.question = data['data']
+        rewritten_question = QuestionProcessor().rewrite_question(self.question, self.chat_history)
         self.rewritten_question = rewritten_question
         await websocket.send_text(rewritten_question)
-        is_retrieval = QuestionProcessor().question_classification(rewritten_question)
+        is_retrieval = QuestionProcessor().question_classification(self.rewritten_question)
         self.is_retrieval = True if int(is_retrieval) == 1 else False
+        # print("chạy tới này rồi")
         self.package_id, self.is_package_id = QuestionProcessor().get_package_id(self.rewritten_question)
         
         if self.is_retrieval == True or self.is_package_id == False:
             follow_up_question_list = QuestionProcessor().get_follow_up_questions(question, "")
             response_data = {
-                '_type': 'follow_up',
+                'type': 'follow_up',
                 'data': follow_up_question_list.follow_up_questions
             }
             await websocket.send_json(response_data)
@@ -107,36 +112,44 @@ class WebSocketManager:
             await websocket.send_text('stream_start')
 
     async def handle_follow_up_question(self, websocket: WebSocket, data: dict):
-        follow_up_questions = data['follow_up_question']
-        follow_up_answers = data['follow_up_answer']
+        follow_up_questions = data['data']['follow_up_question']
+        follow_up_answers = data['data']['follow_up_answer']
         final_question = QuestionProcessor().get_final_question(self.rewritten_question, follow_up_questions, follow_up_answers)
         response_data = {
-            '_type': 'final_question',
+            'type': 'final_question',
             'data': final_question
         }
         self.rewritten_question = final_question
         await websocket.send_json(response_data)
 
     async def handle_get_context_ids(self, websocket: WebSocket, data: dict):
-        final_question = data['final_question']
+        final_question = data['data']
         context_ids = ContextRetriever().get_context_ids_relevant(final_question)
         response_data = {
-            '_type': 'relevant_docs',
+            'type': 'relevant_docs',
             'data': context_ids
         }
         await websocket.send_json(response_data)
 
     async def handle_user_selected_context_ids(self, websocket: WebSocket, data: dict):
-        selected_ids = data['selected_ids']
-        context = ContextRetriever().get_context(selected_ids)
-        self.context += "\n" + context
-        if self.package_id.startswith("0x") != '' or self.is_package_id == True:
+        if self.package_id.startswith("0x") or self.is_package_id == True:
             self.context += "\n" + ContextRetriever().get_context_with_package_id(self.package_id)
-        prompt = answer_question_prompt.format(question=self.rewritten_question, context=self.context, chat_history=self.chat_history)
+            
         if self.is_retrieval == True:
+            selected_ids = data['selected_ids']
+            final_context_id = ContextRetriever().get_id_relevant(selected_ids)
+            context = ContextRetriever().get_context(final_context_id)
+            self.context += "\n" + context
+            
+    async def handle_answer(self, websocket: WebSocket):
+        if self.package_id.startswith("0x") or self.is_package_id == True:
+            prompt = answer_question_prompt.format(question=self.rewritten_question, context=self.context, chat_history=self.chat_history)
+        elif self.is_retrieval == True:
+            prompt = answer_question_prompt.format(question=self.rewritten_question, context=self.context, chat_history=self.chat_history)
+        else:
             prompt = self.rewritten_question
-        for chunk in self.model.astream.invoke(prompt):
-            await websocket.send_text(chunk.content + " ")
+        answer = answer_question(prompt, self.context, self.chat_history)
+        await websocket.send_json({"type":"answer", "data": answer})
 
 ws_manager = WebSocketManager()
 
