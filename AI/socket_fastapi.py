@@ -1,3 +1,5 @@
+
+# sys.path.append("D:/Weminal/Aptopus-AI/src/chatbot")  # Append the path to the chatbot directory
 import sys
 import os
 import json
@@ -10,60 +12,8 @@ from AI.context_retrieval.context_retrieval import ContextRetriever
 from AI.config.config import AIModel
 from AI.config.prompts import *
 
-sys.path.append("D:/Weminal/Aptopus-AI/src/chatbot")  # Append the path to the chatbot directory
-
 app = FastAPI()  # Initialize the FastAPI application
 
-# HTML for testing purposes
-# TODO remember change client_id based on user's profile
-html = """<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat</title>
-</head>
-<body>
-    <h1>WebSocket Chat</h1>
-    <h2>Your ID: <span id="ws-id"></span></h2>
-    <form action="" onsubmit="sendMessage(event)">
-        <input type="text" id="messageText" autocomplete="off" placeholder="Enter message"/>
-        <select id="messageType">
-            <option value="receive_question">Receive question</option>
-            <option value="receive_follow_up_question">Receive next question</option>
-            <option value="get_context_ids">Get context IDs</option>
-            <option value="user_selected_context_ids">Selected context IDs</option>
-            <option value="handle_answer">Handle answer</option>
-        </select>
-        <button>Send</button>
-    </form>
-    <ul id='messages'>
-    </ul>
-    <script>
-        var client_id = 12345 
-        document.querySelector("#ws-id").textContent = client_id;
-        var ws = new WebSocket(`ws://localhost:8000/ws/12345`);
-        ws.onmessage = function(event) {
-            var messages = document.getElementById('messages')
-            var message = document.createElement('li')
-            var content = document.createTextNode(event.data)
-            message.appendChild(content)
-            messages.appendChild(message)
-        };
-        function sendMessage(event) {
-            var input = document.getElementById("messageText")
-            var type = document.getElementById("messageType")
-            var data = {
-                type: type.value,
-                data: input.value
-            }
-            ws.send(JSON.stringify(data))
-            input.value = ''
-            event.preventDefault()
-        }
-    </script>
-</body>
-</html>"""
 
 class WebSocketManager:
     def __init__(self):
@@ -198,6 +148,8 @@ ws_manager = WebSocketManager()
 
 @app.get("/")
 async def get():
+    with open("AI/chat.html", "r", encoding="utf-8") as file:
+        html = file.read()
     return HTMLResponse(html)  # Return the HTML response
 
 @app.websocket("/ws/{client_id}")
