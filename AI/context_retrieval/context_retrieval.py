@@ -62,7 +62,7 @@ class ContextRetriever:
         return context
     
     def get_context_with_package_id(self, package_id):
-        url = f"https://api.testnet.aptoslabs.com/v1/accounts/{package_id}/resources"
+        url = f"https://api.testnet.aptoslabs.com/v1/accounts/{package_id}/modules"
         response = requests.get(url)
         data = response.json()
         return str(data)
