@@ -9,10 +9,23 @@ from query_processor.question_processing import QuestionProcessor
 from answer_generation.answer_generation import answer_question
 from context_retrieval.context_retrieval import ContextRetriever
 from config.config import AIModel
+from fastapi.middleware.cors import CORSMiddleware
 from config.prompts import *
 
 app = FastAPI()  # Initialize the FastAPI application
-
+origins = [
+    "http://localhost.tiangolo.com",
+    "https://localhost.tiangolo.com",
+    "http://localhost",
+    "http://localhost:8080",
+]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class WebSocketManager:
     def __init__(self):

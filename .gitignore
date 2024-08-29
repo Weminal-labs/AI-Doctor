@@ -4,3 +4,6 @@ aptopus-ai.pem
 AI/index.html
 AI/test_socket_io.html
 /api/
+AI/websocket_manage.py
+AI/test.ipynb
+AI/chat.html
